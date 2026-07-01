@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useRef, useState } from "react";
 import type { Booking, MessageLog } from "../types/crm";
 import { dispatchCRMAction, fetchCRMData } from "../utils/api";
 import {
@@ -14,13 +14,15 @@ import {
   isUrgentTriage,
 } from "../utils/format";
 
-type TabKey = "summary" | "transcript" | "notes";
+type TabKey = "summary" | "notes";
 type CRMAction = "resend_confirmation" | "resend_form";
 type FilterKey = "all" | "needs_review" | "form_pending" | "confirmation_pending" | "urgent";
 type ActionFeedback = {
   tone: "success" | "error";
   message: string;
 };
+
+const AUTO_REFRESH_MS = 15000;
 
 export default function Dashboard() {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -36,12 +38,15 @@ export default function Dashboard() {
   const [actionFeedback, setActionFeedback] = useState<ActionFeedback | null>(null);
   const [mobileView, setMobileView] = useState<"list" | "detail">("list");
   const deferredSearch = useDeferredValue(search);
+  const backgroundRefreshInFlight = useRef(false);
 
   async function loadDashboard(options?: { background?: boolean }) {
     const background = options?.background ?? false;
+    if (background && backgroundRefreshInFlight.current) return;
 
     try {
       if (background) {
+        backgroundRefreshInFlight.current = true;
         setRefreshing(true);
       } else {
         setLoading(true);
@@ -54,6 +59,7 @@ export default function Dashboard() {
       setError(loadError instanceof Error ? loadError.message : "Failed to load CRM data.");
     } finally {
       if (background) {
+        backgroundRefreshInFlight.current = false;
         setRefreshing(false);
       } else {
         setLoading(false);
@@ -63,6 +69,48 @@ export default function Dashboard() {
 
   useEffect(() => {
     void loadDashboard();
+  }, []);
+
+  useEffect(() => {
+    let intervalId: number | null = null;
+
+    const stopAutoRefresh = () => {
+      if (intervalId !== null) {
+        window.clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    const startAutoRefresh = () => {
+      stopAutoRefresh();
+      if (document.visibilityState !== "visible") return;
+
+      intervalId = window.setInterval(() => {
+        void loadDashboard({ background: true });
+      }, AUTO_REFRESH_MS);
+    };
+
+    const syncAutoRefresh = () => {
+      if (document.visibilityState === "visible") {
+        void loadDashboard({ background: true });
+        startAutoRefresh();
+        return;
+      }
+
+      stopAutoRefresh();
+    };
+
+    syncAutoRefresh();
+    document.addEventListener("visibilitychange", syncAutoRefresh);
+    window.addEventListener("focus", syncAutoRefresh);
+    window.addEventListener("blur", stopAutoRefresh);
+
+    return () => {
+      stopAutoRefresh();
+      document.removeEventListener("visibilitychange", syncAutoRefresh);
+      window.removeEventListener("focus", syncAutoRefresh);
+      window.removeEventListener("blur", stopAutoRefresh);
+    };
   }, []);
 
   useEffect(() => {
@@ -511,13 +559,6 @@ export default function Dashboard() {
                       </button>
                       <button
                         type="button"
-                        className={`tab-btn ${activeTab === "transcript" ? "active" : ""}`}
-                        onClick={() => setActiveTab("transcript")}
-                      >
-                        Transcript
-                      </button>
-                      <button
-                        type="button"
                         className={`tab-btn ${activeTab === "notes" ? "active" : ""}`}
                         onClick={() => setActiveTab("notes")}
                       >
@@ -525,36 +566,9 @@ export default function Dashboard() {
                       </button>
                     </div>
 
-                    <div className="ai-box transcript-box">
+                    <div className="ai-box">
                       {activeTab === "summary" && <p>{fallback(selectedBooking.call_summary, "No summary available yet.")}</p>}
                       {activeTab === "notes" && <p>{fallback(selectedBooking.notes, "No additional notes.")}</p>}
-                      {activeTab === "transcript" && (
-                        <div>
-                          {(selectedBooking.transcript ?? "No transcript available yet.").split("\n").map((line, index) => {
-                            if (line.startsWith("Agent:")) {
-                              return (
-                                <p key={index} style={{ marginBottom: 8 }}>
-                                  <span className="transcript-agent">Agent:</span> {line.substring(6)}
-                                </p>
-                              );
-                            }
-
-                            if (line.startsWith("Caller:")) {
-                              return (
-                                <p key={index} style={{ marginBottom: 8 }}>
-                                  <span className="transcript-caller">Caller:</span> {line.substring(7)}
-                                </p>
-                              );
-                            }
-
-                            return (
-                              <p key={index} style={{ marginBottom: 8 }}>
-                                {line}
-                              </p>
-                            );
-                          })}
-                        </div>
-                      )}
                     </div>
 
                   </div>
