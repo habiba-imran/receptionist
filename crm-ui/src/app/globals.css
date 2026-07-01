@@ -111,31 +111,24 @@ body {
   margin-top: 2px;
 }
 
-.top-nav {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  padding: 8px 16px;
-  color: var(--text-secondary);
-  text-decoration: none;
-  border-radius: var(--radius-md);
-  transition: all 0.2s ease;
-  font-weight: 500;
-}
-
-.nav-item:hover {
+/* Filters Dropdown */
+.filter-dropdown {
+  width: 100%;
+  padding: 10px 14px;
   background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
   color: var(--text-primary);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s ease;
 }
 
-.nav-item.active {
-  background-color: var(--accent-light);
-  color: var(--accent-primary);
+.filter-dropdown:focus {
+  border-color: var(--accent-primary);
 }
 
 /* Main Content */
@@ -146,28 +139,7 @@ body {
   overflow: hidden;
 }
 
-/* Top Bar */
-.top-bar {
-  height: 72px;
-  background-color: var(--bg-panel);
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 32px;
-}
-
-.top-bar-title h1 {
-  font-size: 1.2rem;
-  font-weight: 700;
-}
-
-.top-bar-title p {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-  margin-top: 4px;
-}
-
+/* Top Bar Actions (now in Navbar) */
 .top-bar-actions {
   display: flex;
   align-items: center;
@@ -286,31 +258,7 @@ body {
 
 .filters {
   padding: 0 24px 16px 24px;
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
   border-bottom: 1px solid var(--border-color);
-}
-
-.filter-btn {
-  background: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  padding: 6px 12px;
-  border-radius: 16px;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.filter-btn:hover {
-  background-color: var(--bg-card);
-}
-
-.filter-btn.active {
-  background-color: var(--accent-primary);
-  color: white;
-  border-color: var(--accent-primary);
 }
 
 .bookings-list {
@@ -850,16 +798,18 @@ body {
 }
 
 @media (max-width: 768px) {
-  .top-bar {
-    padding: 0 16px;
-    flex-direction: column;
+  .main-navbar {
+    padding: 16px;
     height: auto;
+    flex-direction: column;
     align-items: stretch;
-    gap: 12px;
-    padding-top: 16px;
-    padding-bottom: 16px;
+    gap: 16px;
   }
   
+  .navbar-brand {
+    justify-content: center;
+  }
+
   .top-bar-actions {
     flex-direction: column;
     align-items: stretch;

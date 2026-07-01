@@ -198,42 +198,30 @@ export default function Dashboard() {
           </div>
           <span className="subtitle">Agent CRM</span>
         </div>
-        <nav className="top-nav">
-          <a href="#" className="nav-item active">Dashboard</a>
-          <a href="#" className="nav-item">Patients</a>
-        </nav>
+        <div className="top-bar-actions">
+          <div className="search-bar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              placeholder="Search bookings..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
+          <button
+            type="button"
+            className="btn btn-outline top-bar-button"
+            onClick={() => void loadDashboard({ background: true })}
+          >
+            {refreshing ? "Refreshing..." : "Refresh"}
+          </button>
+        </div>
       </header>
 
       <main className="main-content">
-        <header className="top-bar">
-          <div className="top-bar-title">
-            <h1>Bookings Dashboard</h1>
-            <p>Monitor AI-captured appointments, intake progress, and call review cues.</p>
-          </div>
-
-          <div className="top-bar-actions">
-            <div className="search-bar">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-              <input
-                type="text"
-                placeholder="Search name, reason, call ID..."
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </div>
-
-            <button
-              type="button"
-              className="btn btn-outline top-bar-button"
-              onClick={() => void loadDashboard({ background: true })}
-            >
-              {refreshing ? "Refreshing..." : "Refresh"}
-            </button>
-          </div>
-        </header>
 
         {error && bookings.length ? (
           <div className="system-feedback system-feedback-error">
@@ -249,41 +237,17 @@ export default function Dashboard() {
             </div>
 
             <div className="filters">
-              <button
-                className={`filter-btn ${activeFilter === "all" ? "active" : ""}`}
-                type="button"
-                onClick={() => setActiveFilter("all")}
+              <select 
+                className="filter-dropdown"
+                value={activeFilter}
+                onChange={(e) => setActiveFilter(e.target.value as FilterKey)}
               >
-                All ({filterCounts.all})
-              </button>
-              <button
-                className={`filter-btn ${activeFilter === "needs_review" ? "active" : ""}`}
-                type="button"
-                onClick={() => setActiveFilter("needs_review")}
-              >
-                Needs Review ({filterCounts.needs_review})
-              </button>
-              <button
-                className={`filter-btn ${activeFilter === "form_pending" ? "active" : ""}`}
-                type="button"
-                onClick={() => setActiveFilter("form_pending")}
-              >
-                Form Pending ({filterCounts.form_pending})
-              </button>
-              <button
-                className={`filter-btn ${activeFilter === "confirmation_pending" ? "active" : ""}`}
-                type="button"
-                onClick={() => setActiveFilter("confirmation_pending")}
-              >
-                Confirmation Pending ({filterCounts.confirmation_pending})
-              </button>
-              <button
-                className={`filter-btn ${activeFilter === "urgent" ? "active" : ""}`}
-                type="button"
-                onClick={() => setActiveFilter("urgent")}
-              >
-                Urgent ({filterCounts.urgent})
-              </button>
+                <option value="all">All Bookings ({filterCounts.all})</option>
+                <option value="needs_review">Needs Review ({filterCounts.needs_review})</option>
+                <option value="form_pending">Form Pending ({filterCounts.form_pending})</option>
+                <option value="confirmation_pending">Confirmation Pending ({filterCounts.confirmation_pending})</option>
+                <option value="urgent">Urgent ({filterCounts.urgent})</option>
+              </select>
             </div>
 
             <div className="bookings-list">
