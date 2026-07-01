@@ -1,0 +1,50 @@
+Retell Post-Call Data Extraction Fields
+Use the exact field names below.
+
+Format:
+field_name | data_type | description | selector options / notes
+
+language | selector | Language used for most of the call. | en, es
+first_name | text | Caller first name used for booking. |
+full_legal_name | text | Full legal name exactly as it appears on the insurance card if provided. |
+dob | text | Patient date of birth. Prefer YYYY-MM-DD if Retell supports normalized dates, otherwise capture the clearly confirmed spoken value. |
+gender | text | Patient gender if volunteered. |
+mailing_address | text | Mailing or home address if provided. |
+callback_number | text | Alternate callback number if different from the main contact number. |
+email | text | Email address if provided. |
+reason | text | Main cardiology reason for the visit in the caller's own words. |
+appointment_text | text | Preferred visit day or time exactly as the caller says it. |
+patient_status | selector | Whether the caller is a new or existing patient. | new, existing, unknown
+patient_status_unverified | boolean | True if patient status was uncertain and should be treated as unverified. |
+contact_number | text | Best phone number for follow-up after the call. |
+whatsapp_suitable | boolean | True if the caller says this number is okay for WhatsApp or both WhatsApp and text. False if they say text only or WhatsApp is not okay. |
+insurance_status | selector | Insurance situation for this visit. | covered, partial, pending, unknown, self_pay, pending_form
+payer_name | text | Insurance company name. |
+member_id | text | Member or subscriber ID from the insurance card. Keep all letters and digits. |
+group_number | text | Group number from the insurance card if provided. |
+plan_type | text | Plan type such as PPO, HMO, EPO, POS, Medicare, Medicaid, or Medicare Advantage. |
+payer_id | text | Payer ID if available from the card. |
+customer_service_number | text | Insurance customer service number from the card if provided. |
+patient_is_subscriber | boolean | True if the patient is the policyholder. False if insurance belongs to someone else. |
+subscriber_name | text | Policyholder full name if different from the patient. |
+subscriber_dob | text | Policyholder date of birth if different from the patient. |
+subscriber_relationship | text | Patient relationship to the subscriber, such as spouse, parent, child, or self. |
+subscriber_employer | text | Subscriber employer if mentioned. |
+has_secondary | boolean | True if the caller reports a second insurance plan. |
+secondary_payer | text | Name of the secondary insurance company if present. |
+secondary_member_id | text | Member ID for the secondary insurance if present. |
+primary_plan | selector | Which plan should be treated as primary when multiple plans exist. | primary_current, primary_other, unknown
+plan_change_this_year | boolean | True if the caller says their employer or insurance plan changed this year. |
+plan_change_details | text | Short note about the insurance or employer plan change if mentioned. |
+referring_provider | selector | Whether the visit is based on a referral from another doctor. | yes, no, unknown
+provider_name | text | Name of the referring or relevant provider if given. |
+npi | text | NPI number if the caller has it. |
+tax_id | text | Tax ID if the caller has it. |
+cpt_codes | text | Any CPT codes mentioned by the caller. |
+prior_auth | boolean | True if prior authorization already exists. False if caller clearly says no. |
+prior_auth_number | text | Prior authorization number if available. |
+seen_other_provider | selector | Whether the caller has seen another provider recently for the same issue. | yes, no, unknown
+notes | text | Free-text notes for anything clinically relevant or operationally useful that does not fit another field. Also use this for explicit SMS vs WhatsApp preference wording if the caller mentions it. |
+intake_method | selector | How the caller chose to provide intake details. | form, voice
+triage_flag | selector | Safety or urgency flag from the conversation. | none, chest_pain_low, chest_pain_high, urgent_emergency
+transfer_initiated | boolean | True only if the caller clearly asked for a human or the call should be escalated to staff follow-up. |

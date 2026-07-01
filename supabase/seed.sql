@@ -1,0 +1,3 @@
+-- Intentionally empty for now.
+-- Keeping this file avoids local Supabase seed-step failures while the project
+-- is still using migrations as the source of truth.
