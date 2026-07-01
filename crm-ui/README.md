@@ -64,11 +64,18 @@ http://localhost:3000
 
 If deploying this sub-app to Vercel:
 
-1. Set the Vercel project root directory to `crm-ui`
-2. Add these environment variables in Vercel:
+1. Import the repository into Vercel
+2. Set the project root directory to `crm-ui`
+3. Confirm the framework is detected as `Next.js`
+4. Add these environment variables in Vercel:
    - `CRM_API_URL`
    - `CRM_SECRET`
-3. Deploy normally with the default Next.js build command
+5. Deploy with the default Next.js settings:
+   - Install Command: `npm install`
+   - Build Command: `npm run build`
+   - Output Directory: leave default
+
+You can copy the variable names from `.env.example`.
 
 Recommended production setup:
 

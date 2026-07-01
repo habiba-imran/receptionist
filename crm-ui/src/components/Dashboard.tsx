@@ -605,16 +605,6 @@ export default function Dashboard() {
                       )}
                     </div>
 
-                    {selectedBooking.recording_url ? (
-                      <div className="recording-player">
-                        <span className="label">Call Recording:</span>
-                        <audio controls className="custom-audio" src={selectedBooking.recording_url}>
-                          Your browser does not support the audio element.
-                        </audio>
-                      </div>
-                    ) : (
-                      <p className="recording-empty">No recording URL available for this call.</p>
-                    )}
                   </div>
 
                   <div className="card full-width">
