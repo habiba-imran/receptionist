@@ -44,6 +44,8 @@ export function formatBoolean(
 export function humanizeToken(value: string | null | undefined, fallbackText = "--"): string {
   if (!value) return fallbackText;
 
+  if (value === "partial_intake_capture") return "Partial Intake Captured";
+
   return value
     .replace(/_/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());

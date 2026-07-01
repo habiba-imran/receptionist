@@ -80,17 +80,39 @@ async function handleAnalyzed(call: any, callId: string) {
     await db.from("bookings").update(auditPatch).eq("call_id", callId);
   } else {
     const row: any = buildBookingRow({ ...custom, intake_method: custom.intake_method ?? "voice" }, { source: "webhook_recovery" });
+    const captureScore = getCrmCaptureScore(row);
+    if (captureScore < 2) return;
+
     row.call_id = callId;
     row.assigned_doctor = DEFAULT_DOCTOR;
     row.patient_acct = patientAcct(callId);
-    row.needs_review = true;
-    row.review_reasons = Array.from(new Set([...(row.review_reasons ?? []), "recovered_from_analysis"]));
+    row.needs_review = row.needs_review === true || captureScore < 4;
+    row.review_reasons = Array.from(new Set([
+      ...(row.review_reasons ?? []),
+      "recovered_from_analysis",
+      ...(captureScore < 4 ? ["partial_intake_capture"] : []),
+    ]));
     if (!row.contact_number && call.from_number) row.contact_number = call.from_number;
     Object.assign(row, auditPatch);
     await db.from("bookings").upsert(row, { onConflict: "call_id" });
   }
 
   await runPostCallMessaging(callId, call.from_number ?? "");
+}
+
+function getCrmCaptureScore(row: {
+  first_name?: string | null;
+  full_legal_name?: string | null;
+  reason?: string | null;
+  appointment_text?: string | null;
+  patient_status?: string | null;
+}): number {
+  let score = 0;
+  if (row.first_name || row.full_legal_name) score += 1;
+  if (row.reason) score += 1;
+  if (row.appointment_text) score += 1;
+  if (row.patient_status) score += 1;
+  return score;
 }
 
 async function logMsg(db: any, callId: string, bookingId: string | null, purpose: string, res: any, body: string) {
