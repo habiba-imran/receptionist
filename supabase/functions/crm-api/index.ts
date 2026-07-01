@@ -1,6 +1,6 @@
 import { admin } from "../_shared/supa.ts";
 import { sendSmart } from "../_shared/messaging.ts";
-import { confirmationMessage, formLinkMessage } from "../_shared/booking.ts";
+import { confirmationMessage, formLinkMessage, formSubmittedMessage } from "../_shared/booking.ts";
 
 const CRM_SECRET = Deno.env.get("CRM_SECRET") ?? "";
 const FORM_BASE_URL = Deno.env.get("FORM_BASE_URL") ?? "https://YOUR-SITE.netlify.app/intake-form.html";
@@ -39,7 +39,10 @@ Deno.serve(async (req) => {
     if (b.whatsapp_suitable !== true) return json({ error: "whatsapp_not_consented" }, 400);
 
     let msg = "", purpose = "";
-    if (action === "resend_confirmation") { msg = confirmationMessage(b); purpose = "confirmation"; }
+    if (action === "resend_confirmation") {
+      msg = b.form_status === "submitted" ? formSubmittedMessage(b) : confirmationMessage(b);
+      purpose = "confirmation";
+    }
     else if (action === "resend_form") {
       const url = `${FORM_BASE_URL}?cid=${encodeURIComponent(callId)}&lang=${b.language ?? "en"}`;
       msg = formLinkMessage(url, b.language, b); purpose = "form_link";

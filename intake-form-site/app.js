@@ -29,12 +29,23 @@
   const submitUrl = config.submitUrl || "";
 
   const params = new URLSearchParams(window.location.search);
-  const cid = params.get("cid") || "";
+  const storedCid = window.sessionStorage.getItem("intake_form_cid") || "";
+  const cid = params.get("cid") || storedCid;
   const lang = (params.get("lang") || "en").toLowerCase().startsWith("es") ? "es" : "en";
 
   cidInput.value = cid;
   languageInput.value = lang;
   languageLabel.textContent = `Language: ${lang === "es" ? "Spanish" : "English"}`;
+
+  if (cid) {
+    window.sessionStorage.setItem("intake_form_cid", cid);
+    if (!params.get("cid")) {
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.set("cid", cid);
+      nextUrl.searchParams.set("lang", lang);
+      window.history.replaceState({}, "", nextUrl.toString());
+    }
+  }
 
   function showAlert(message, tone) {
     alertBox.className = `alert alert-${tone}`;
@@ -112,6 +123,12 @@
       languageInput.value = String(booking.language).toLowerCase().startsWith("es") ? "es" : "en";
       languageLabel.textContent = `Language: ${languageInput.value === "es" ? "Spanish" : "English"}`;
     }
+  }
+
+  function showSubmittedState() {
+    clearAlert();
+    form.classList.add("hidden");
+    successState.classList.remove("hidden");
   }
 
   function setRequired(element, required) {
@@ -196,6 +213,11 @@
       const data = await response.json().catch(() => ({}));
       if (!response.ok || data.ok !== true || !data.booking) return;
 
+      if (data.booking.form_status === "submitted") {
+        showSubmittedState();
+        return;
+      }
+
       applyPrefill(data.booking);
       updateConditionalUI();
     } catch (_) {
@@ -249,8 +271,8 @@
         throw new Error(data.error || "Submission failed. Please try again.");
       }
 
-      form.classList.add("hidden");
-      successState.classList.remove("hidden");
+      window.sessionStorage.setItem("intake_form_cid", cidInput.value);
+      showSubmittedState();
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
       showAlert(error instanceof Error ? error.message : "Submission failed. Please try again.", "error");

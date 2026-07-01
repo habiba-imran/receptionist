@@ -1,5 +1,5 @@
 import { admin, background } from "../_shared/supa.ts";
-import { buildBookingRow, confirmationMessage } from "../_shared/booking.ts";
+import { buildBookingRow, formSubmittedMessage } from "../_shared/booking.ts";
 import { sendSmart } from "../_shared/messaging.ts";
 import { parseDateOnly, str } from "../_shared/validate.ts";
 
@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
 
     const db = admin();
     const { data: existing } = await db.from("bookings")
-      .select("call_id, language, first_name, appointment_text, reason, patient_status, callback_number, full_legal_name, dob, gender, email, contact_number, mailing_address, insurance_status, payer_name, member_id, group_number, plan_type, payer_id, customer_service_number, patient_is_subscriber, subscriber_name, subscriber_dob, subscriber_relationship, subscriber_employer, has_secondary, secondary_payer, secondary_member_id, primary_plan, plan_change_this_year, plan_change_details, referring_provider, provider_name, npi, tax_id, cpt_codes, prior_auth, prior_auth_number, seen_other_provider, notes")
+      .select("call_id, form_status, language, first_name, appointment_text, reason, patient_status, callback_number, full_legal_name, dob, gender, email, contact_number, mailing_address, insurance_status, payer_name, member_id, group_number, plan_type, payer_id, customer_service_number, patient_is_subscriber, subscriber_name, subscriber_dob, subscriber_relationship, subscriber_employer, has_secondary, secondary_payer, secondary_member_id, primary_plan, plan_change_this_year, plan_change_details, referring_provider, provider_name, npi, tax_id, cpt_codes, prior_auth, prior_auth_number, seen_other_provider, notes")
       .eq("call_id", callId)
       .maybeSingle();
 
@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
     const to = b.contact_number ?? "";
     if (!to) return;
     if (b.whatsapp_suitable !== true) return;
-    const msg = confirmationMessage(b);
+    const msg = formSubmittedMessage(b);
     const res = await sendSmart(to, msg, { preferWhatsapp: b.whatsapp_suitable === true });
     await db.from("message_log").insert({
       call_id: callId, booking_id: b.id, purpose: "confirmation",
