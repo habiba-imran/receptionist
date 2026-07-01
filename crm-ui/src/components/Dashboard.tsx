@@ -1,8 +1,9 @@
 "use client";
 
-import { useDeferredValue, useEffect, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useEffectEvent, useRef, useState } from "react";
 import type { Booking, MessageLog } from "../types/crm";
 import { dispatchCRMAction, fetchCRMData } from "../utils/api";
+import { getBrowserSupabaseClient } from "../utils/supabase";
 import {
   fallback,
   formatBoolean,
@@ -22,7 +23,7 @@ type ActionFeedback = {
   message: string;
 };
 
-const AUTO_REFRESH_MS = 15000;
+const REALTIME_REFRESH_DEBOUNCE_MS = 1200;
 
 export default function Dashboard() {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -39,6 +40,7 @@ export default function Dashboard() {
   const [mobileView, setMobileView] = useState<"list" | "detail">("list");
   const deferredSearch = useDeferredValue(search);
   const backgroundRefreshInFlight = useRef(false);
+  const realtimeRefreshTimeoutRef = useRef<number | null>(null);
 
   async function loadDashboard(options?: { background?: boolean }) {
     const background = options?.background ?? false;
@@ -71,45 +73,74 @@ export default function Dashboard() {
     void loadDashboard();
   }, []);
 
-  useEffect(() => {
-    let intervalId: number | null = null;
+  const queueRealtimeRefresh = useEffectEvent(() => {
+    if (document.visibilityState !== "visible") return;
 
-    const stopAutoRefresh = () => {
-      if (intervalId !== null) {
-        window.clearInterval(intervalId);
-        intervalId = null;
+    if (realtimeRefreshTimeoutRef.current !== null) {
+      window.clearTimeout(realtimeRefreshTimeoutRef.current);
+    }
+
+    realtimeRefreshTimeoutRef.current = window.setTimeout(() => {
+      realtimeRefreshTimeoutRef.current = null;
+      void loadDashboard({ background: true });
+    }, REALTIME_REFRESH_DEBOUNCE_MS);
+  });
+
+  useEffect(() => {
+    const supabase = getBrowserSupabaseClient();
+    if (!supabase) return;
+
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    const stopRealtime = () => {
+      if (realtimeRefreshTimeoutRef.current !== null) {
+        window.clearTimeout(realtimeRefreshTimeoutRef.current);
+        realtimeRefreshTimeoutRef.current = null;
+      }
+
+      if (channel) {
+        void supabase.removeChannel(channel);
+        channel = null;
       }
     };
 
-    const startAutoRefresh = () => {
-      stopAutoRefresh();
+    const startRealtime = () => {
+      stopRealtime();
       if (document.visibilityState !== "visible") return;
 
-      intervalId = window.setInterval(() => {
-        void loadDashboard({ background: true });
-      }, AUTO_REFRESH_MS);
+      channel = supabase
+        .channel("crm-live-updates")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "bookings" },
+          () => queueRealtimeRefresh()
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "message_log" },
+          () => queueRealtimeRefresh()
+        )
+        .subscribe();
     };
 
-    const syncAutoRefresh = () => {
+    const syncRealtime = () => {
       if (document.visibilityState === "visible") {
         void loadDashboard({ background: true });
-        startAutoRefresh();
+        startRealtime();
         return;
       }
 
-      stopAutoRefresh();
+      stopRealtime();
     };
 
-    syncAutoRefresh();
-    document.addEventListener("visibilitychange", syncAutoRefresh);
-    window.addEventListener("focus", syncAutoRefresh);
-    window.addEventListener("blur", stopAutoRefresh);
+    syncRealtime();
+    document.addEventListener("visibilitychange", syncRealtime);
+    window.addEventListener("focus", syncRealtime);
 
     return () => {
-      stopAutoRefresh();
-      document.removeEventListener("visibilitychange", syncAutoRefresh);
-      window.removeEventListener("focus", syncAutoRefresh);
-      window.removeEventListener("blur", stopAutoRefresh);
+      stopRealtime();
+      document.removeEventListener("visibilitychange", syncRealtime);
+      window.removeEventListener("focus", syncRealtime);
     };
   }, []);
 

@@ -3,6 +3,8 @@
   const alertBox = document.getElementById("alert");
   const submitButton = document.getElementById("submit-button");
   const successState = document.getElementById("success-state");
+  const successTitle = document.getElementById("success-title");
+  const successMessage = document.getElementById("success-message");
   const languageInput = document.getElementById("language");
   const languageLabel = document.getElementById("language-label");
   const cidInput = document.getElementById("cid");
@@ -29,23 +31,12 @@
   const submitUrl = config.submitUrl || "";
 
   const params = new URLSearchParams(window.location.search);
-  const storedCid = window.sessionStorage.getItem("intake_form_cid") || "";
-  const cid = params.get("cid") || storedCid;
+  const cid = params.get("cid") || "";
   const lang = (params.get("lang") || "en").toLowerCase().startsWith("es") ? "es" : "en";
 
   cidInput.value = cid;
   languageInput.value = lang;
   languageLabel.textContent = `Language: ${lang === "es" ? "Spanish" : "English"}`;
-
-  if (cid) {
-    window.sessionStorage.setItem("intake_form_cid", cid);
-    if (!params.get("cid")) {
-      const nextUrl = new URL(window.location.href);
-      nextUrl.searchParams.set("cid", cid);
-      nextUrl.searchParams.set("lang", lang);
-      window.history.replaceState({}, "", nextUrl.toString());
-    }
-  }
 
   function showAlert(message, tone) {
     alertBox.className = `alert alert-${tone}`;
@@ -56,6 +47,11 @@
   function clearAlert() {
     alertBox.className = "alert hidden";
     alertBox.textContent = "";
+  }
+
+  function hideForm() {
+    form.classList.add("hidden");
+    submitButton.disabled = true;
   }
 
   function setFieldValue(name, value) {
@@ -125,9 +121,11 @@
     }
   }
 
-  function showSubmittedState() {
+  function showSubmittedState(title, message) {
     clearAlert();
-    form.classList.add("hidden");
+    hideForm();
+    if (successTitle) successTitle.textContent = title;
+    if (successMessage) successMessage.textContent = message;
     successState.classList.remove("hidden");
   }
 
@@ -211,10 +209,22 @@
       });
 
       const data = await response.json().catch(() => ({}));
-      if (!response.ok || data.ok !== true || !data.booking) return;
+      if (response.status === 404) {
+        showAlert("You have unauthorized access to this form.", "error");
+        hideForm();
+        return;
+      }
+      if (!response.ok || data.ok !== true || !data.booking) {
+        showAlert("Unable to load this secure form right now. Please use the original link sent after the call.", "error");
+        hideForm();
+        return;
+      }
 
       if (data.booking.form_status === "submitted") {
-        showSubmittedState();
+        showSubmittedState(
+          "Already submitted",
+          "You have already filled in this form. Our team will review your details and follow up if anything else is needed."
+        );
         return;
       }
 
@@ -234,11 +244,11 @@
   updateConditionalUI();
 
   if (!cid) {
-    showAlert("This form link is missing the secure call reference. Please use the link that was sent to you after the call.", "error");
-    submitButton.disabled = true;
+    showAlert("You have unauthorized access to this form.", "error");
+    hideForm();
   } else if (!submitUrl || submitUrl.includes("YOUR_SUPABASE_PROJECT")) {
     showAlert("This form is not configured yet. Update config.js with the deployed submit-form endpoint before using it.", "error");
-    submitButton.disabled = true;
+    hideForm();
   }
 
   loadExistingBooking();
@@ -271,8 +281,10 @@
         throw new Error(data.error || "Submission failed. Please try again.");
       }
 
-      window.sessionStorage.setItem("intake_form_cid", cidInput.value);
-      showSubmittedState();
+      showSubmittedState(
+        "Thank you",
+        "Your intake form was submitted successfully. If you reopen this secure link, we will show this confirmation instead of asking you to fill the form again."
+      );
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
       showAlert(error instanceof Error ? error.message : "Submission failed. Please try again.", "error");

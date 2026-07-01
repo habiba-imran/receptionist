@@ -32,6 +32,8 @@ Set these in local `.env.local` and in the Vercel project settings:
 ```bash
 CRM_API_URL=https://YOUR_SUPABASE_PROJECT.supabase.co/functions/v1/crm-api
 CRM_SECRET=your_crm_secret_if_used
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR_SUPABASE_PROJECT.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
 Notes:
@@ -39,6 +41,7 @@ Notes:
 - `CRM_API_URL` should point to the deployed Supabase `crm-api` function.
 - `CRM_SECRET` must match the `CRM_SECRET` configured in the Supabase edge function environment if that secret is enabled there.
 - If the Supabase function does not enforce `CRM_SECRET`, this value can be omitted, but keeping it enabled is recommended for production.
+- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are used by the browser for live Realtime updates.
 
 ## Local Development
 
@@ -70,6 +73,8 @@ If deploying this sub-app to Vercel:
 4. Add these environment variables in Vercel:
    - `CRM_API_URL`
    - `CRM_SECRET`
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 5. Deploy with the default Next.js settings:
    - Install Command: `npm install`
    - Build Command: `npm run build`
