@@ -47,6 +47,73 @@
     alertBox.textContent = "";
   }
 
+  function setFieldValue(name, value) {
+    if (value === null || value === undefined || value === "") return;
+    const field = form.elements.namedItem(name);
+    if (!field) return;
+
+    if (field instanceof RadioNodeList) {
+      for (const option of field) {
+        if (option.value === String(value)) {
+          option.checked = true;
+        }
+      }
+      return;
+    }
+
+    field.value = String(value);
+  }
+
+  function applyPrefill(booking) {
+    if (!booking || typeof booking !== "object") return;
+
+    [
+      "first_name",
+      "appointment_text",
+      "reason",
+      "patient_status",
+      "callback_number",
+      "full_legal_name",
+      "dob",
+      "gender",
+      "email",
+      "contact_number",
+      "mailing_address",
+      "insurance_status",
+      "payer_name",
+      "member_id",
+      "group_number",
+      "plan_type",
+      "payer_id",
+      "customer_service_number",
+      "patient_is_subscriber",
+      "subscriber_name",
+      "subscriber_dob",
+      "subscriber_relationship",
+      "subscriber_employer",
+      "has_secondary",
+      "secondary_payer",
+      "secondary_member_id",
+      "primary_plan",
+      "plan_change_this_year",
+      "plan_change_details",
+      "referring_provider",
+      "provider_name",
+      "npi",
+      "tax_id",
+      "cpt_codes",
+      "prior_auth",
+      "prior_auth_number",
+      "seen_other_provider",
+      "notes",
+    ].forEach((name) => setFieldValue(name, booking[name]));
+
+    if (booking.language) {
+      languageInput.value = String(booking.language).toLowerCase().startsWith("es") ? "es" : "en";
+      languageLabel.textContent = `Language: ${languageInput.value === "es" ? "Spanish" : "English"}`;
+    }
+  }
+
   function setRequired(element, required) {
     if (!element) return;
     element.required = required;
@@ -115,6 +182,27 @@
     return payload;
   }
 
+  async function loadExistingBooking() {
+    if (!cid || !submitUrl || submitUrl.includes("YOUR_SUPABASE_PROJECT")) return;
+
+    try {
+      const response = await fetch(`${submitUrl}?cid=${encodeURIComponent(cid)}`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.ok !== true || !data.booking) return;
+
+      applyPrefill(data.booking);
+      updateConditionalUI();
+    } catch (_) {
+      // Keep the form usable even if prefill lookup fails.
+    }
+  }
+
   insuranceStatus.addEventListener("change", updateConditionalUI);
   patientIsSubscriber.addEventListener("change", updateConditionalUI);
   hasSecondary.addEventListener("change", updateConditionalUI);
@@ -130,6 +218,8 @@
     showAlert("This form is not configured yet. Update config.js with the deployed submit-form endpoint before using it.", "error");
     submitButton.disabled = true;
   }
+
+  loadExistingBooking();
 
   form.addEventListener("submit", async function (event) {
     event.preventDefault();
