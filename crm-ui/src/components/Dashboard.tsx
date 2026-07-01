@@ -34,6 +34,7 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [activeAction, setActiveAction] = useState<CRMAction | null>(null);
   const [actionFeedback, setActionFeedback] = useState<ActionFeedback | null>(null);
+  const [mobileView, setMobileView] = useState<"list" | "detail">("list");
   const deferredSearch = useDeferredValue(search);
 
   async function loadDashboard(options?: { background?: boolean }) {
@@ -187,45 +188,21 @@ export default function Dashboard() {
 
   return (
     <div className="app-container">
-      <aside className="sidebar">
-        <div className="sidebar-header">
+      <header className="main-navbar">
+        <div className="navbar-brand">
           <div className="logo">
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
             </svg>
             <h2>Awaaz Labs</h2>
           </div>
-          <p className="subtitle">Cardiology Agent CRM</p>
+          <span className="subtitle">Agent CRM</span>
         </div>
-
-        <nav className="nav-menu">
-          <a href="#" className="nav-item active">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-              <polyline points="9 22 9 12 15 12 15 22"></polyline>
-            </svg>
-            Dashboard
-          </a>
-          <a href="#" className="nav-item">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-            Patients
-          </a>
+        <nav className="top-nav">
+          <a href="#" className="nav-item active">Dashboard</a>
+          <a href="#" className="nav-item">Patients</a>
         </nav>
-      </aside>
+      </header>
 
       <main className="main-content">
         <header className="top-bar">
@@ -264,7 +241,7 @@ export default function Dashboard() {
           </div>
         ) : null}
 
-        <div className="dashboard-layout">
+        <div className={`dashboard-layout ${mobileView === "detail" ? "show-detail" : "show-list"}`}>
           <section className="list-section">
             <div className="section-header">
               <h3>Recent AI Bookings</h3>
@@ -346,6 +323,7 @@ export default function Dashboard() {
                       onClick={() => {
                         setSelectedBookingId(booking.id);
                         setActiveTab("summary");
+                        setMobileView("detail");
                       }}
                     >
                       <div className="b-header">
@@ -395,6 +373,16 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="booking-details">
+                <button 
+                  className="mobile-back-btn" 
+                  onClick={() => setMobileView("list")}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                  Back to Bookings
+                </button>
                 <div className="detail-header">
                   <div className="patient-title">
                     <h2>{fallback(selectedBooking.full_legal_name ?? selectedBooking.first_name, "Unknown caller")}</h2>

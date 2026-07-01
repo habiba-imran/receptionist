@@ -53,21 +53,24 @@ body {
 /* Layout */
 .app-container {
   display: flex;
+  flex-direction: column;
   height: 100vh;
 }
 
-/* Sidebar */
-.sidebar {
-  width: 260px;
+/* Top Navigation */
+.main-navbar {
+  height: 64px;
   background-color: var(--bg-panel);
-  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
 }
 
-.sidebar-header {
-  padding: 24px;
-  border-bottom: 1px solid var(--border-color);
+.navbar-brand {
+  display: flex;
+  align-items: center;
 }
 
 .logo {
@@ -75,7 +78,7 @@ body {
   align-items: center;
   gap: 12px;
   color: var(--accent-primary);
-  margin-bottom: 4px;
+  margin-right: 12px;
 }
 
 .logo h2 {
@@ -87,21 +90,21 @@ body {
 .subtitle {
   font-size: 0.85rem;
   color: var(--text-secondary);
-  margin-left: 36px;
+  border-left: 1px solid var(--border-color);
+  padding-left: 12px;
+  margin-top: 2px;
 }
 
-.nav-menu {
-  padding: 24px 12px;
+.top-nav {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 8px;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+  padding: 8px 16px;
   color: var(--text-secondary);
   text-decoration: none;
   border-radius: var(--radius-md);
@@ -216,6 +219,7 @@ body {
   display: flex;
   flex: 1;
   overflow: hidden;
+  position: relative;
 }
 
 .system-feedback {
@@ -235,10 +239,12 @@ body {
 /* Left Column: List Section */
 .list-section {
   width: 400px;
+  min-width: 400px;
   background-color: var(--bg-panel);
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
 .section-header {
@@ -432,6 +438,19 @@ body {
   padding: 40px;
   max-width: 1000px;
   margin: 0 auto;
+}
+
+.mobile-back-btn {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: var(--accent-primary);
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0 0 20px 0;
 }
 
 .detail-header {
@@ -798,62 +817,102 @@ body {
 
 .message-error {
   margin-top: 10px;
-  color: #fca5a5;
-  font-size: 0.88rem;
+  color: var(--danger);
 }
 
-@media (max-width: 1180px) {
-  .sidebar {
-    display: none;
+/* Responsive Overrides */
+@media (max-width: 900px) {
+  .list-section {
+    width: 320px;
+    min-width: 320px;
   }
-
+  
   .detail-grid {
     grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   .top-bar {
-    height: auto;
-    padding: 20px 24px;
-    align-items: flex-start;
+    padding: 0 16px;
     flex-direction: column;
-    gap: 16px;
+    height: auto;
+    align-items: stretch;
+    gap: 12px;
+    padding-top: 16px;
+    padding-bottom: 16px;
   }
-
+  
   .top-bar-actions {
-    width: 100%;
     flex-direction: column;
     align-items: stretch;
   }
-
+  
   .search-bar {
     width: 100%;
   }
-
+  
+  .main-navbar {
+    padding: 0 16px;
+  }
+  
   .dashboard-layout {
-    flex-direction: column;
+    display: block;
   }
-
-  .system-feedback {
-    margin: 16px 24px 0 24px;
-  }
-
-  .list-section {
+  
+  .list-section, .detail-section {
     width: 100%;
-    max-height: 40vh;
+    min-width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    transition: transform 0.3s ease;
   }
-
+  
+  .dashboard-layout.show-list .list-section {
+    transform: translateX(0);
+    z-index: 2;
+  }
+  
+  .dashboard-layout.show-list .detail-section {
+    transform: translateX(100%);
+    z-index: 1;
+  }
+  
+  .dashboard-layout.show-detail .list-section {
+    transform: translateX(-100%);
+    z-index: 1;
+  }
+  
+  .dashboard-layout.show-detail .detail-section {
+    transform: translateX(0);
+    z-index: 2;
+  }
+  
+  .mobile-back-btn {
+    display: flex;
+  }
+  
   .booking-details {
-    padding: 24px;
+    padding: 24px 16px;
   }
-
+  
   .detail-header {
-    align-items: flex-start;
     flex-direction: column;
+    align-items: flex-start;
     gap: 16px;
   }
-
+  
+  .action-buttons {
+    width: 100%;
+    flex-direction: column;
+  }
+  
+  .action-buttons .btn {
+    width: 100%;
+  }
+  
   .insurance-grid {
     grid-template-columns: 1fr;
   }
