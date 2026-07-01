@@ -458,18 +458,16 @@ export default function Dashboard() {
                 )}
 
                 <div className="detail-grid">
-                  <div className="card">
-                    <h3>Appointment Details</h3>
+                  <AccordionCard title="Appointment Details" defaultOpen={true}>
                     <InfoRow label="Preferred timing" value={fallback(selectedBooking.appointment_text)} />
                     <InfoRow label="Appointment date" value={formatDateTime(selectedBooking.appointment_at)} />
                     <InfoRow label="Doctor" value={fallback(selectedBooking.assigned_doctor)} />
                     <InfoRow label="Reason" value={fallback(selectedBooking.reason)} />
                     <InfoRow label="Patient status" value={humanizeToken(selectedBooking.patient_status)} />
                     <InfoRow label="Language" value={humanizeToken(selectedBooking.language)} />
-                  </div>
+                  </AccordionCard>
 
-                  <div className="card">
-                    <h3>Patient & Contact</h3>
+                  <AccordionCard title="Patient & Contact" defaultOpen={true}>
                     <InfoRow label="First name" value={fallback(selectedBooking.first_name)} />
                     <InfoRow label="Full legal name" value={fallback(selectedBooking.full_legal_name)} />
                     <InfoRow label="DOB" value={formatDateOnly(selectedBooking.dob)} />
@@ -478,10 +476,9 @@ export default function Dashboard() {
                     <InfoRow label="WhatsApp suitable" value={formatBoolean(selectedBooking.whatsapp_suitable)} />
                     <InfoRow label="Email" value={fallback(selectedBooking.email)} />
                     <InfoRow label="Address" value={fallback(selectedBooking.mailing_address)} />
-                  </div>
+                  </AccordionCard>
 
-                  <div className="card full-width">
-                    <h3>Insurance</h3>
+                  <AccordionCard title="Insurance" className="full-width" defaultOpen={false}>
                     <div className="insurance-grid">
                       <InfoRow
                         label="Insurance status"
@@ -498,10 +495,9 @@ export default function Dashboard() {
                       <InfoRow label="Prior auth number" value={fallback(selectedBooking.prior_auth_number)} />
                       <InfoRow label="CPT codes" value={fallback(selectedBooking.cpt_codes)} />
                     </div>
-                  </div>
+                  </AccordionCard>
 
-                  <div className="card">
-                    <h3>Subscriber & Secondary Coverage</h3>
+                  <AccordionCard title="Subscriber & Secondary Coverage" defaultOpen={false}>
                     <InfoRow label="Patient is subscriber" value={formatBoolean(selectedBooking.patient_is_subscriber)} />
                     <InfoRow label="Subscriber name" value={fallback(selectedBooking.subscriber_name)} />
                     <InfoRow label="Subscriber DOB" value={formatDateOnly(selectedBooking.subscriber_dob)} />
@@ -512,10 +508,9 @@ export default function Dashboard() {
                     <InfoRow label="Secondary member ID" value={fallback(selectedBooking.secondary_member_id)} />
                     <InfoRow label="Primary plan" value={humanizeToken(selectedBooking.primary_plan)} />
                     <InfoRow label="Plan changed this year" value={formatBoolean(selectedBooking.plan_change_this_year)} />
-                  </div>
+                  </AccordionCard>
 
-                  <div className="card">
-                    <h3>Operational Status</h3>
+                  <AccordionCard title="Operational Status" defaultOpen={false}>
                     <InfoRow label="Call ID" value={fallback(selectedBooking.call_id)} />
                     <InfoRow
                       label="Intake method"
@@ -544,11 +539,9 @@ export default function Dashboard() {
                       tone={getStatusTone("triage", selectedBooking.triage_flag)}
                     />
                     <InfoRow label="Transfer initiated" value={formatBoolean(selectedBooking.transfer_initiated)} />
-                  </div>
+                  </AccordionCard>
 
-                  <div className="card full-width analysis-card">
-                    <h3>AI Call Analysis</h3>
-
+                  <AccordionCard title="AI Call Analysis" className="full-width analysis-card" defaultOpen={false}>
                     <div className="tabs">
                       <button
                         type="button"
@@ -570,11 +563,9 @@ export default function Dashboard() {
                       {activeTab === "summary" && <p>{fallback(selectedBooking.call_summary, "No summary available yet.")}</p>}
                       {activeTab === "notes" && <p>{fallback(selectedBooking.notes, "No additional notes.")}</p>}
                     </div>
+                  </AccordionCard>
 
-                  </div>
-
-                  <div className="card full-width">
-                    <h3>Message History</h3>
+                  <AccordionCard title="Message History" className="full-width" defaultOpen={false}>
                     {relatedMessages.length === 0 ? (
                       <p className="message-empty">No related messages found for this booking yet.</p>
                     ) : (
@@ -608,13 +599,46 @@ export default function Dashboard() {
                         ))}
                       </div>
                     )}
-                  </div>
+                  </AccordionCard>
                 </div>
               </div>
             )}
           </section>
         </div>
       </main>
+    </div>
+  );
+}
+
+function AccordionCard({
+  title,
+  defaultOpen = false,
+  className = "",
+  children,
+}: {
+  title: React.ReactNode;
+  defaultOpen?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div className={`card accordion-card ${className}`}>
+      <button 
+        type="button" 
+        className="accordion-header" 
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <h3>{title}</h3>
+        <svg 
+          className={`chevron ${isOpen ? "rotate" : ""}`} 
+          width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+        >
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+      {isOpen && <div className="accordion-content">{children}</div>}
     </div>
   );
 }
