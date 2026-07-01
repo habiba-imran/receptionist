@@ -2,7 +2,7 @@ export function toDigits(input?: string | null): string {
   return (input ?? "").replace(/[^\d]/g, "");
 }
 
-export function toE164(input?: string | null, defaultCc = "1"): string {
+export function toE164(input?: string | null, defaultCc = "92"): string {
   let d = toDigits(input);
   if (!d) return "";
   if (d.length === 10) d = defaultCc + d;

@@ -91,22 +91,68 @@ export function patientAcct(callId: string): string {
 
 export function confirmationMessage(p: {
   first_name?: string | null;
+  reason?: string | null;
   appointment_text?: string | null;
+  patient_status?: string | null;
+  insurance_status?: string | null;
+  payer_name?: string | null;
+  member_id?: string | null;
+  intake_method?: string | null;
   assigned_doctor?: string | null;
   language?: string | null;
 }): string {
   const name = p.first_name || "there";
   const when = p.appointment_text || "the time we discussed";
+  const reason = p.reason || "your cardiology visit";
+  const patientStatus = normalizePatientStatus(p.patient_status);
+  const insuranceLine = insuranceSummary(p);
   const doc = p.assigned_doctor || "your cardiologist";
   if ((p.language || "en").toLowerCase().startsWith("es")) {
-    return `Awaaz Labs Cardiology: Hola ${name}, su cita esta anotada para ${when}. Sera atendido por ${doc}. Nuestro equipo le llamara para confirmar los detalles. Responda STOP para no recibir mensajes.`;
+    return `Awaaz Labs Cardiology: Hola ${name}. Resumen de su llamada: motivo ${reason}, horario ${when}, paciente ${patientStatus}. ${insuranceLine} Sera atendido por ${doc}. Nuestro equipo dara seguimiento pronto. Responda STOP para no recibir mensajes.`;
   }
-  return `Awaaz Labs Cardiology: Hi ${name}, your appointment is noted for ${when}. You will be seen by ${doc}. Our team will call to finalize the details. Reply STOP to opt out.`;
+  return `Awaaz Labs Cardiology: Hi ${name}. Call summary: reason ${reason}, timing ${when}, patient status ${patientStatus}. ${insuranceLine} You will be seen by ${doc}. Our team will follow up shortly. Reply STOP to opt out.`;
 }
 
-export function formLinkMessage(url: string, language?: string | null): string {
-  if ((language || "en").toLowerCase().startsWith("es")) {
-    return `Awaaz Labs Cardiology: Por favor complete su formulario de admision seguro aqui: ${url}`;
+export function formLinkMessage(
+  url: string,
+  language?: string | null,
+  details?: {
+    first_name?: string | null;
+    reason?: string | null;
+    appointment_text?: string | null;
+    patient_status?: string | null;
   }
-  return `Awaaz Labs Cardiology: Please complete your secure intake form here: ${url}`;
+): string {
+  const name = details?.first_name || "there";
+  const reason = details?.reason || "your cardiology visit";
+  const when = details?.appointment_text || "the time discussed";
+  const patientStatus = normalizePatientStatus(details?.patient_status);
+  if ((language || "en").toLowerCase().startsWith("es")) {
+    return `Awaaz Labs Cardiology: Hola ${name}. Ya tenemos su motivo ${reason}, horario ${when} y estado de paciente ${patientStatus}. Complete los detalles de seguro y admision aqui: ${url}`;
+  }
+  return `Awaaz Labs Cardiology: Hi ${name}. We already have your reason ${reason}, timing ${when}, and patient status ${patientStatus}. Please complete your insurance and intake details here: ${url}`;
+}
+
+function normalizePatientStatus(value?: string | null): string {
+  if (!value) return "unknown";
+  const v = value.replace(/_/g, " ").trim().toLowerCase();
+  if (v === "new") return "new";
+  if (v === "existing") return "existing";
+  return v;
+}
+
+function insuranceSummary(p: {
+  intake_method?: string | null;
+  insurance_status?: string | null;
+  payer_name?: string | null;
+  member_id?: string | null;
+}): string {
+  if (p.intake_method === "form") {
+    return "Insurance details will be completed in the secure form.";
+  }
+
+  const status = p.insurance_status ? p.insurance_status.replace(/_/g, " ") : "pending";
+  const payer = p.payer_name ? ` insurer ${p.payer_name}` : "";
+  const member = p.member_id ? `, member ID ${p.member_id}` : "";
+  return `Insurance status ${status}${payer}${member}.`;
 }

@@ -41,3 +41,7 @@ yarn-error.log*
 .agents/
 .claude/
 crm-ui-vanilla/
+
+# Supabase
+supabase/.temp/
+.env

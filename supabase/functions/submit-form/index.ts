@@ -20,7 +20,9 @@ Deno.serve(async (req) => {
   if (!callId) return json({ error: "missing_cid" }, 400);
 
   const db = admin();
-  const row = buildBookingRow({ ...body, intake_method: "form" }, { source: "form" });
+  const { data: existing } = await db.from("bookings").select("*").eq("call_id", callId).maybeSingle();
+
+  const row = buildBookingRow({ ...(existing ?? {}), ...body, intake_method: "form" }, { source: "form" });
   row.call_id = callId;
   row.form_status = "submitted";
 
@@ -41,13 +43,14 @@ Deno.serve(async (req) => {
 
   background((async () => {
     const { data: b } = await db.from("bookings")
-      .select("id, first_name, appointment_text, assigned_doctor, language, contact_number, confirmation_status")
+      .select("id, first_name, reason, appointment_text, patient_status, insurance_status, payer_name, member_id, intake_method, assigned_doctor, language, contact_number, confirmation_status, whatsapp_suitable")
       .eq("call_id", callId).single();
     if (!b || b.confirmation_status === "sent") return;
     const to = b.contact_number ?? "";
     if (!to) return;
+    if (b.whatsapp_suitable !== true) return;
     const msg = confirmationMessage(b);
-    const res = await sendSmart(to, msg);
+    const res = await sendSmart(to, msg, { preferWhatsapp: b.whatsapp_suitable === true });
     await db.from("message_log").insert({
       call_id: callId, booking_id: b.id, purpose: "confirmation",
       channel: res.channel, provider: res.provider, to_number: res.to,

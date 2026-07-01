@@ -36,15 +36,16 @@ Deno.serve(async (req) => {
     if (!b) return json({ error: "not_found" }, 404);
     const to = b.contact_number ?? "";
     if (!to) return json({ error: "no_number" }, 400);
+    if (b.whatsapp_suitable !== true) return json({ error: "whatsapp_not_consented" }, 400);
 
     let msg = "", purpose = "";
     if (action === "resend_confirmation") { msg = confirmationMessage(b); purpose = "confirmation"; }
     else if (action === "resend_form") {
       const url = `${FORM_BASE_URL}?cid=${encodeURIComponent(callId)}&lang=${b.language ?? "en"}`;
-      msg = formLinkMessage(url, b.language); purpose = "form_link";
+      msg = formLinkMessage(url, b.language, b); purpose = "form_link";
     } else return json({ error: "bad_action" }, 400);
 
-    const res = await sendSmart(to, msg);
+    const res = await sendSmart(to, msg, { preferWhatsapp: b.whatsapp_suitable === true });
     await db.from("message_log").insert({
       call_id: callId, booking_id: b.id, purpose,
       channel: res.channel, provider: res.provider, to_number: res.to,

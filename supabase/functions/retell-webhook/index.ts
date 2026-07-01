@@ -27,24 +27,26 @@ Deno.serve(async (req) => {
 async function runPostCallMessaging(callId: string, fallbackNumber: string) {
   const db = admin();
   const { data: b } = await db.from("bookings")
-    .select("id, intake_method, form_status, confirmation_status, contact_number, first_name, appointment_text, assigned_doctor, language")
+    .select("id, intake_method, form_status, confirmation_status, contact_number, first_name, reason, appointment_text, patient_status, insurance_status, payer_name, member_id, assigned_doctor, language, whatsapp_suitable")
     .eq("call_id", callId).maybeSingle();
   if (!b) return;
   const to = b.contact_number ?? fallbackNumber ?? "";
   if (!to) return;
+  const preferWhatsapp = b.whatsapp_suitable === true;
+  if (!preferWhatsapp) return;
 
   if (b.intake_method === "form") {
     if (!b.form_status || b.form_status === "not_sent") {
       const url = `${FORM_BASE_URL}?cid=${encodeURIComponent(callId)}&lang=${b.language ?? "en"}`;
-      const msg = formLinkMessage(url, b.language);
-      const res = await sendSmart(to, msg);
+      const msg = formLinkMessage(url, b.language, b);
+      const res = await sendSmart(to, msg, { preferWhatsapp });
       await logMsg(db, callId, b.id, "form_link", res, msg);
       if (res.status === "sent") await db.from("bookings").update({ form_status: "sent" }).eq("call_id", callId);
     }
   } else {
     if (!b.confirmation_status || b.confirmation_status === "pending") {
       const msg = confirmationMessage(b);
-      const res = await sendSmart(to, msg);
+      const res = await sendSmart(to, msg, { preferWhatsapp });
       await logMsg(db, callId, b.id, "confirmation", res, msg);
       await db.from("bookings").update({
         confirmation_status: res.status === "sent" ? "sent" : "failed",
