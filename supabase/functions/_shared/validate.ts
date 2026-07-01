@@ -2,7 +2,9 @@ export function toDigits(input?: string | null): string {
   return (input ?? "").replace(/[^\d]/g, "");
 }
 
-export function toE164(input?: string | null, defaultCc = "92"): string {
+const DEFAULT_COUNTRY_CODE = toDigits(Deno.env.get("DEFAULT_COUNTRY_CODE")) || "92";
+
+export function toE164(input?: string | null, defaultCc = DEFAULT_COUNTRY_CODE): string {
   let d = toDigits(input);
   if (!d) return "";
   if (d.startsWith("00")) d = d.slice(2);
