@@ -17,8 +17,15 @@ type SendSmartOptions = {
   preferWhatsapp?: boolean;
 };
 
-async function hasWhatsapp(e164: string): Promise<boolean> {
-  if (!GREEN_ID || !GREEN_TOKEN) return false;
+type WhatsappAvailability = {
+  available: boolean;
+  error?: string;
+};
+
+async function hasWhatsapp(e164: string): Promise<WhatsappAvailability> {
+  if (!GREEN_ID || !GREEN_TOKEN) {
+    return { available: false, error: "green_api_not_configured" };
+  }
   try {
     const url = `${GREEN_URL}/waInstance${GREEN_ID}/checkWhatsapp/${GREEN_TOKEN}`;
     const r = await fetch(url, {
@@ -27,10 +34,16 @@ async function hasWhatsapp(e164: string): Promise<boolean> {
       body: JSON.stringify({ phoneNumber: Number(toDigits(e164)) }),
     });
     const j = await r.json().catch(() => ({}));
-    return !!j.existsWhatsapp;
+    if (!r.ok) {
+      return { available: false, error: `check_whatsapp_http_${r.status}:${JSON.stringify(j)}` };
+    }
+    if (!j.existsWhatsapp) {
+      return { available: false, error: "whatsapp_not_available" };
+    }
+    return { available: true };
   } catch (e) {
     console.error("checkWhatsapp failed", e);
-    return false;
+    return { available: false, error: `check_whatsapp_failed:${String(e)}` };
   }
 }
 
@@ -62,8 +75,15 @@ export async function sendSmart(rawPhone: string, message: string, options: Send
   if (!options.preferWhatsapp) {
     return { channel: "whatsapp", provider: "green_api", status: "failed", error: "whatsapp_not_consented", to: e164 };
   }
-  if (!await hasWhatsapp(e164)) {
-    return { channel: "whatsapp", provider: "green_api", status: "failed", error: "whatsapp_not_available", to: e164 };
+  const availability = await hasWhatsapp(e164);
+  if (!availability.available) {
+    return {
+      channel: "whatsapp",
+      provider: "green_api",
+      status: "failed",
+      error: availability.error ?? "whatsapp_not_available",
+      to: e164,
+    };
   }
   return sendWhatsapp(e164, message);
 }

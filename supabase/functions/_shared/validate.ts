@@ -5,6 +5,8 @@ export function toDigits(input?: string | null): string {
 export function toE164(input?: string | null, defaultCc = "92"): string {
   let d = toDigits(input);
   if (!d) return "";
+  if (d.startsWith("00")) d = d.slice(2);
+  if (d.length === 11 && d.startsWith("0")) d = defaultCc + d.slice(1);
   if (d.length === 10) d = defaultCc + d;
   return "+" + d;
 }
@@ -21,9 +23,9 @@ export function parseDateOnly(input?: string | null): string | null {
     const mo = +a, da = +b;
     return isRealDate(yr, mo, da) ? fmt(yr, mo, da) : null;
   }
-  const months = ["january","february","march","april","may","june","july","august","september","october","november","december"];
+  const months = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
   const m = s.toLowerCase().match(/([a-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})/) ||
-            s.toLowerCase().match(/(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]+),?\s+(\d{4})/);
+    s.toLowerCase().match(/(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]+),?\s+(\d{4})/);
   if (m) {
     let mo: number, da: number, yr: number;
     if (isNaN(+m[1])) { mo = months.indexOf(m[1]) + 1; da = +m[2]; yr = +m[3]; }
