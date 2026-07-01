@@ -1,373 +1,380 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Awaaz Labs Cardiology Intake Form</title>
-    <link rel="stylesheet" href="./styles.css" />
-    <script src="./config.js"></script>
-    <script defer src="./app.js"></script>
-  </head>
-  <body>
-    <div class="page-shell">
-      <aside class="hero-panel">
-        <div class="hero-card">
-          <p class="eyebrow">Awaaz Labs Cardiology</p>
-          <h1>Secure Patient Intake Form</h1>
-          <p class="hero-copy">
-            Complete the insurance and visit details below so our team can prepare your appointment and verify benefits.
-          </p>
-          <div class="hero-points">
-            <div>
-              <strong>What you need</strong>
-              <p>Your insurance card and a few visit details.</p>
-            </div>
-            <div>
-              <strong>What is required</strong>
-              <p>Required fields are marked clearly. The rest can be left blank if unknown.</p>
-            </div>
-            <div>
-              <strong>Need help?</strong>
-              <p>If you do not know a field, submit what you can and our team will follow up.</p>
-            </div>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Awaaz Labs Cardiology Intake Form</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <script src="./config.js"></script>
+  <script defer src="./app.js"></script>
+</head>
+
+<body>
+  <div class="page-shell">
+    <aside class="hero-panel">
+      <div class="hero-card">
+        <p class="eyebrow">Awaaz Labs Cardiology</p>
+        <h1>Secure Patient Intake Form</h1>
+        <p class="hero-copy">
+          Complete the insurance and visit details below so our team can prepare your appointment and verify benefits.
+        </p>
+        <div class="hero-points">
+          <div>
+            <strong>What you need</strong>
+            <p>Your insurance card and a few visit details.</p>
+          </div>
+          <div>
+            <strong>What is required</strong>
+            <p>Required fields are marked clearly. The rest can be left blank if unknown.</p>
+          </div>
+          <div>
+            <strong>Need help?</strong>
+            <p>If you do not know a field, submit what you can and our team will follow up.</p>
           </div>
         </div>
-      </aside>
+      </div>
+    </aside>
 
-      <main class="form-panel">
-        <div class="form-wrap">
-          <header class="form-header">
-            <p class="status-line" id="language-label">Language: English</p>
-            <h2>Patient & Insurance Intake</h2>
-            <p class="form-intro">
-              We will prefill any details already captured on your call. Please review them and update anything that needs correction before submitting.
-            </p>
-          </header>
+    <main class="form-panel">
+      <div class="form-wrap">
+        <header class="form-header">
+          <p class="status-line" id="language-label">Language: English</p>
+          <h2>Patient & Insurance Intake</h2>
+          <p class="form-intro">
+            We will prefill any details already captured on your call. Please review them and update anything that needs
+            correction before submitting.
+          </p>
+        </header>
 
-          <div id="alert" class="alert hidden" role="alert"></div>
+        <div id="alert" class="alert hidden" role="alert"></div>
 
-          <form id="intake-form" novalidate>
-            <input type="hidden" name="cid" id="cid" />
-            <input type="hidden" name="language" id="language" value="en" />
-            <input type="hidden" name="intake_method" value="form" />
+        <form id="intake-form" novalidate>
+          <input type="hidden" name="cid" id="cid" />
+          <input type="hidden" name="language" id="language" value="en" />
+          <input type="hidden" name="intake_method" value="form" />
 
-            <section class="section">
-              <div class="section-heading">
-                <h3>Basic Visit Details</h3>
-                <p>These fields are loaded from your call when available. You can edit them before saving.</p>
-              </div>
-              <div class="grid two">
-                <label class="field">
-                  <span>First name <em>*</em></span>
-                  <input type="text" name="first_name" required />
-                </label>
-                <label class="field">
-                  <span>Preferred appointment timing <em>*</em></span>
-                  <input type="text" name="appointment_text" placeholder="e.g. next Tuesday morning" required />
-                </label>
-              </div>
-              <div class="grid one">
-                <label class="field">
-                  <span>Reason for visit <em>*</em></span>
-                  <textarea name="reason" rows="3" placeholder="Briefly describe the reason for the cardiology visit" required></textarea>
-                </label>
-              </div>
-              <div class="grid two">
-                <label class="field">
-                  <span>Patient status</span>
-                  <select name="patient_status">
-                    <option value="">Select</option>
-                    <option value="new">New</option>
-                    <option value="existing">Existing</option>
-                    <option value="unknown">Unknown</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span>Best callback number</span>
-                  <input type="tel" name="callback_number" placeholder="(555) 555-5555" />
-                </label>
-              </div>
-            </section>
-
-            <section class="section">
-              <div class="section-heading">
-                <h3>Patient Demographics</h3>
-                <p>Full legal name and date of birth are required for insurance review.</p>
-              </div>
-              <div class="grid two">
-                <label class="field">
-                  <span>Full legal name <em>*</em></span>
-                  <input type="text" name="full_legal_name" required />
-                </label>
-                <label class="field">
-                  <span>Date of birth <em>*</em></span>
-                  <input type="date" name="dob" required />
-                </label>
-              </div>
-              <div class="grid three">
-                <label class="field">
-                  <span>Gender</span>
-                  <input type="text" name="gender" />
-                </label>
-                <label class="field">
-                  <span>Email</span>
-                  <input type="email" name="email" />
-                </label>
-                <label class="field">
-                  <span>Contact number</span>
-                  <input type="tel" name="contact_number" placeholder="Main number if different from the call" />
-                </label>
-              </div>
-              <div class="grid one">
-                <label class="field">
-                  <span>Mailing address</span>
-                  <textarea name="mailing_address" rows="2"></textarea>
-                </label>
-              </div>
-            </section>
-
-            <section class="section">
-              <div class="section-heading">
-                <h3>Insurance Overview</h3>
-                <p>Select the insurance situation for this visit.</p>
-              </div>
-              <div class="grid one">
-                <label class="field">
-                  <span>Insurance status <em>*</em></span>
-                  <select name="insurance_status" id="insurance_status" required>
-                    <option value="">Select</option>
-                    <option value="covered">Covered</option>
-                    <option value="partial">Partially covered</option>
-                    <option value="pending">Pending verification</option>
-                    <option value="unknown">Unknown</option>
-                    <option value="self_pay">Self pay</option>
-                  </select>
-                </label>
-              </div>
-            </section>
-
-            <section class="section conditional-section" id="primary-insurance-section">
-              <div class="section-heading">
-                <h3>Primary Insurance</h3>
-                <p>If insurance applies, please fill this section from the card.</p>
-              </div>
-              <div class="grid two">
-                <label class="field">
-                  <span>Payer name <em data-insured-marker>*</em></span>
-                  <input type="text" name="payer_name" id="payer_name" />
-                </label>
-                <label class="field">
-                  <span>Member / subscriber ID <em data-insured-marker>*</em></span>
-                  <input type="text" name="member_id" id="member_id" />
-                </label>
-              </div>
-              <div class="grid three">
-                <label class="field">
-                  <span>Group number</span>
-                  <input type="text" name="group_number" />
-                </label>
-                <label class="field">
-                  <span>Plan type</span>
-                  <select name="plan_type">
-                    <option value="">Select</option>
-                    <option value="PPO">PPO</option>
-                    <option value="HMO">HMO</option>
-                    <option value="EPO">EPO</option>
-                    <option value="POS">POS</option>
-                    <option value="Medicare">Medicare</option>
-                    <option value="Medicaid">Medicaid</option>
-                    <option value="Medicare Advantage">Medicare Advantage</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span>Payer ID</span>
-                  <input type="text" name="payer_id" />
-                </label>
-              </div>
-              <div class="grid two">
-                <label class="field">
-                  <span>Customer service number</span>
-                  <input type="tel" name="customer_service_number" />
-                </label>
-                <label class="field">
-                  <span>Is the patient the subscriber? <em data-insured-marker>*</em></span>
-                  <select name="patient_is_subscriber" id="patient_is_subscriber">
-                    <option value="">Select</option>
-                    <option value="true">Yes</option>
-                    <option value="false">No</option>
-                  </select>
-                </label>
-              </div>
-            </section>
-
-            <section class="section conditional-section" id="subscriber-section">
-              <div class="section-heading">
-                <h3>Subscriber / Policyholder</h3>
-                <p>Complete this only if the insurance is under someone else.</p>
-              </div>
-              <div class="grid two">
-                <label class="field">
-                  <span>Subscriber full name <em data-subscriber-marker>*</em></span>
-                  <input type="text" name="subscriber_name" id="subscriber_name" />
-                </label>
-                <label class="field">
-                  <span>Subscriber date of birth <em data-subscriber-marker>*</em></span>
-                  <input type="date" name="subscriber_dob" id="subscriber_dob" />
-                </label>
-              </div>
-              <div class="grid two">
-                <label class="field">
-                  <span>Relationship to subscriber <em data-subscriber-marker>*</em></span>
-                  <input type="text" name="subscriber_relationship" id="subscriber_relationship" placeholder="e.g. spouse, parent" />
-                </label>
-                <label class="field">
-                  <span>Subscriber employer</span>
-                  <input type="text" name="subscriber_employer" />
-                </label>
-              </div>
-            </section>
-
-            <section class="section conditional-section" id="secondary-section">
-              <div class="section-heading">
-                <h3>Secondary Coverage</h3>
-                <p>Tell us if there is any second insurance plan.</p>
-              </div>
-              <div class="grid two">
-                <label class="field">
-                  <span>Any secondary insurance? <em data-insured-marker>*</em></span>
-                  <select name="has_secondary" id="has_secondary">
-                    <option value="">Select</option>
-                    <option value="true">Yes</option>
-                    <option value="false">No</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span>Which plan is primary?</span>
-                  <select name="primary_plan" id="primary_plan">
-                    <option value="">Select</option>
-                    <option value="primary_current">This plan</option>
-                    <option value="primary_other">Other plan</option>
-                    <option value="unknown">Unknown</option>
-                  </select>
-                </label>
-              </div>
-              <div class="grid two secondary-only">
-                <label class="field">
-                  <span>Secondary payer <em data-secondary-marker>*</em></span>
-                  <input type="text" name="secondary_payer" id="secondary_payer" />
-                </label>
-                <label class="field">
-                  <span>Secondary member ID <em data-secondary-marker>*</em></span>
-                  <input type="text" name="secondary_member_id" id="secondary_member_id" />
-                </label>
-              </div>
-              <div class="grid two">
-                <label class="field">
-                  <span>Employer or plan changed this year?</span>
-                  <select name="plan_change_this_year" id="plan_change_this_year">
-                    <option value="">Select</option>
-                    <option value="true">Yes</option>
-                    <option value="false">No</option>
-                  </select>
-                </label>
-                <label class="field plan-change-only">
-                  <span>Plan change details</span>
-                  <input type="text" name="plan_change_details" id="plan_change_details" />
-                </label>
-              </div>
-            </section>
-
-            <section class="section">
-              <div class="section-heading">
-                <h3>Service Context</h3>
-                <p>These details help the billing and scheduling team prepare faster.</p>
-              </div>
-              <div class="grid three">
-                <label class="field">
-                  <span>Reason for visit / expected service</span>
-                  <input type="text" name="notes_reason_context" disabled value="Already captured on call" />
-                </label>
-                <label class="field">
-                  <span>Referring provider?</span>
-                  <select name="referring_provider">
-                    <option value="">Select</option>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                    <option value="unknown">Unknown</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span>Provider name</span>
-                  <input type="text" name="provider_name" />
-                </label>
-              </div>
-              <div class="grid three">
-                <label class="field">
-                  <span>NPI</span>
-                  <input type="text" name="npi" />
-                </label>
-                <label class="field">
-                  <span>Tax ID</span>
-                  <input type="text" name="tax_id" />
-                </label>
-                <label class="field">
-                  <span>CPT codes</span>
-                  <input type="text" name="cpt_codes" placeholder="Comma-separated if known" />
-                </label>
-              </div>
-              <div class="grid three">
-                <label class="field">
-                  <span>Existing prior authorization?</span>
-                  <select name="prior_auth" id="prior_auth">
-                    <option value="">Select</option>
-                    <option value="true">Yes</option>
-                    <option value="false">No</option>
-                  </select>
-                </label>
-                <label class="field prior-auth-only">
-                  <span>Prior authorization number</span>
-                  <input type="text" name="prior_auth_number" id="prior_auth_number" />
-                </label>
-                <label class="field">
-                  <span>Seen another provider for this issue?</span>
-                  <select name="seen_other_provider">
-                    <option value="">Select</option>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                    <option value="unknown">Unknown</option>
-                  </select>
-                </label>
-              </div>
-            </section>
-
-            <section class="section">
-              <div class="section-heading">
-                <h3>Additional Notes</h3>
-                <p>Optional details for anything else our team should know.</p>
-              </div>
-              <div class="grid one">
-                <label class="field">
-                  <span>Notes</span>
-                  <textarea name="notes" rows="4" placeholder="Anything else useful for the team"></textarea>
-                </label>
-              </div>
-            </section>
-
-            <div class="submit-row">
-              <p class="privacy-note">
-                By submitting, you confirm the information is accurate to the best of your knowledge.
-              </p>
-              <button type="submit" id="submit-button">Submit Intake Form</button>
+          <section class="section">
+            <div class="section-heading">
+              <h3>Basic Visit Details</h3>
+              <p>These fields are loaded from your call when available. You can edit them before saving.</p>
             </div>
-          </form>
-
-          <section id="success-state" class="success-state hidden">
-            <p class="eyebrow">Submission received</p>
-            <h3>Thank you</h3>
-            <p>Your intake form was submitted successfully. Our team will review it and follow up if anything else is needed.</p>
+            <div class="grid two">
+              <label class="field">
+                <span>First name <em>*</em></span>
+                <input type="text" name="first_name" required />
+              </label>
+              <label class="field">
+                <span>Preferred appointment timing <em>*</em></span>
+                <input type="text" name="appointment_text" placeholder="e.g. next Tuesday morning" required />
+              </label>
+            </div>
+            <div class="grid one">
+              <label class="field">
+                <span>Reason for visit <em>*</em></span>
+                <textarea name="reason" rows="3" placeholder="Briefly describe the reason for the cardiology visit"
+                  required></textarea>
+              </label>
+            </div>
+            <div class="grid two">
+              <label class="field">
+                <span>Patient status</span>
+                <select name="patient_status">
+                  <option value="">Select</option>
+                  <option value="new">New</option>
+                  <option value="existing">Existing</option>
+                  <option value="unknown">Unknown</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Best callback number</span>
+                <input type="tel" name="callback_number" placeholder="(555) 555-5555" />
+              </label>
+            </div>
           </section>
-        </div>
-      </main>
-    </div>
-  </body>
+
+          <section class="section">
+            <div class="section-heading">
+              <h3>Patient Demographics</h3>
+              <p>Full legal name and date of birth are required for insurance review.</p>
+            </div>
+            <div class="grid two">
+              <label class="field">
+                <span>Full legal name <em>*</em></span>
+                <input type="text" name="full_legal_name" required />
+              </label>
+              <label class="field">
+                <span>Date of birth <em>*</em></span>
+                <input type="date" name="dob" required />
+              </label>
+            </div>
+            <div class="grid three">
+              <label class="field">
+                <span>Gender</span>
+                <input type="text" name="gender" />
+              </label>
+              <label class="field">
+                <span>Email</span>
+                <input type="email" name="email" />
+              </label>
+              <label class="field">
+                <span>Contact number</span>
+                <input type="tel" name="contact_number" placeholder="Main number if different from the call" />
+              </label>
+            </div>
+            <div class="grid one">
+              <label class="field">
+                <span>Mailing address</span>
+                <textarea name="mailing_address" rows="2"></textarea>
+              </label>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section-heading">
+              <h3>Insurance Overview</h3>
+              <p>Select the insurance situation for this visit.</p>
+            </div>
+            <div class="grid one">
+              <label class="field">
+                <span>Insurance status <em>*</em></span>
+                <select name="insurance_status" id="insurance_status" required>
+                  <option value="">Select</option>
+                  <option value="covered">Covered</option>
+                  <option value="partial">Partially covered</option>
+                  <option value="pending">Pending verification</option>
+                  <option value="unknown">Unknown</option>
+                  <option value="self_pay">Self pay</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section class="section conditional-section" id="primary-insurance-section">
+            <div class="section-heading">
+              <h3>Primary Insurance</h3>
+              <p>If insurance applies, please fill this section from the card.</p>
+            </div>
+            <div class="grid two">
+              <label class="field">
+                <span>Payer name <em data-insured-marker>*</em></span>
+                <input type="text" name="payer_name" id="payer_name" />
+              </label>
+              <label class="field">
+                <span>Member / subscriber ID <em data-insured-marker>*</em></span>
+                <input type="text" name="member_id" id="member_id" />
+              </label>
+            </div>
+            <div class="grid three">
+              <label class="field">
+                <span>Group number</span>
+                <input type="text" name="group_number" />
+              </label>
+              <label class="field">
+                <span>Plan type</span>
+                <select name="plan_type">
+                  <option value="">Select</option>
+                  <option value="PPO">PPO</option>
+                  <option value="HMO">HMO</option>
+                  <option value="EPO">EPO</option>
+                  <option value="POS">POS</option>
+                  <option value="Medicare">Medicare</option>
+                  <option value="Medicaid">Medicaid</option>
+                  <option value="Medicare Advantage">Medicare Advantage</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Payer ID</span>
+                <input type="text" name="payer_id" />
+              </label>
+            </div>
+            <div class="grid two">
+              <label class="field">
+                <span>Customer service number</span>
+                <input type="tel" name="customer_service_number" />
+              </label>
+              <label class="field">
+                <span>Is the patient the subscriber? <em data-insured-marker>*</em></span>
+                <select name="patient_is_subscriber" id="patient_is_subscriber">
+                  <option value="">Select</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section class="section conditional-section" id="subscriber-section">
+            <div class="section-heading">
+              <h3>Subscriber / Policyholder</h3>
+              <p>Complete this only if the insurance is under someone else.</p>
+            </div>
+            <div class="grid two">
+              <label class="field">
+                <span>Subscriber full name <em data-subscriber-marker>*</em></span>
+                <input type="text" name="subscriber_name" id="subscriber_name" />
+              </label>
+              <label class="field">
+                <span>Subscriber date of birth <em data-subscriber-marker>*</em></span>
+                <input type="date" name="subscriber_dob" id="subscriber_dob" />
+              </label>
+            </div>
+            <div class="grid two">
+              <label class="field">
+                <span>Relationship to subscriber <em data-subscriber-marker>*</em></span>
+                <input type="text" name="subscriber_relationship" id="subscriber_relationship"
+                  placeholder="e.g. spouse, parent" />
+              </label>
+              <label class="field">
+                <span>Subscriber employer</span>
+                <input type="text" name="subscriber_employer" />
+              </label>
+            </div>
+          </section>
+
+          <section class="section conditional-section" id="secondary-section">
+            <div class="section-heading">
+              <h3>Secondary Coverage</h3>
+              <p>Tell us if there is any second insurance plan.</p>
+            </div>
+            <div class="grid two">
+              <label class="field">
+                <span>Any secondary insurance? <em data-insured-marker>*</em></span>
+                <select name="has_secondary" id="has_secondary">
+                  <option value="">Select</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Which plan is primary?</span>
+                <select name="primary_plan" id="primary_plan">
+                  <option value="">Select</option>
+                  <option value="primary_current">This plan</option>
+                  <option value="primary_other">Other plan</option>
+                  <option value="unknown">Unknown</option>
+                </select>
+              </label>
+            </div>
+            <div class="grid two secondary-only">
+              <label class="field">
+                <span>Secondary payer <em data-secondary-marker>*</em></span>
+                <input type="text" name="secondary_payer" id="secondary_payer" />
+              </label>
+              <label class="field">
+                <span>Secondary member ID <em data-secondary-marker>*</em></span>
+                <input type="text" name="secondary_member_id" id="secondary_member_id" />
+              </label>
+            </div>
+            <div class="grid two">
+              <label class="field">
+                <span>Employer or plan changed this year?</span>
+                <select name="plan_change_this_year" id="plan_change_this_year">
+                  <option value="">Select</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+              </label>
+              <label class="field plan-change-only">
+                <span>Plan change details</span>
+                <input type="text" name="plan_change_details" id="plan_change_details" />
+              </label>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section-heading">
+              <h3>Service Context</h3>
+              <p>These details help the billing and scheduling team prepare faster.</p>
+            </div>
+            <div class="grid three">
+              <label class="field">
+                <span>Reason for visit / expected service</span>
+                <input type="text" name="notes_reason_context" disabled value="Already captured on call" />
+              </label>
+              <label class="field">
+                <span>Referring provider?</span>
+                <select name="referring_provider">
+                  <option value="">Select</option>
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                  <option value="unknown">Unknown</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Provider name</span>
+                <input type="text" name="provider_name" />
+              </label>
+            </div>
+            <div class="grid three">
+              <label class="field">
+                <span>NPI</span>
+                <input type="text" name="npi" />
+              </label>
+              <label class="field">
+                <span>Tax ID</span>
+                <input type="text" name="tax_id" />
+              </label>
+              <label class="field">
+                <span>CPT codes</span>
+                <input type="text" name="cpt_codes" placeholder="Comma-separated if known" />
+              </label>
+            </div>
+            <div class="grid three">
+              <label class="field">
+                <span>Existing prior authorization?</span>
+                <select name="prior_auth" id="prior_auth">
+                  <option value="">Select</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+              </label>
+              <label class="field prior-auth-only">
+                <span>Prior authorization number</span>
+                <input type="text" name="prior_auth_number" id="prior_auth_number" />
+              </label>
+              <label class="field">
+                <span>Seen another provider for this issue?</span>
+                <select name="seen_other_provider">
+                  <option value="">Select</option>
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                  <option value="unknown">Unknown</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section-heading">
+              <h3>Additional Notes</h3>
+              <p>Optional details for anything else our team should know.</p>
+            </div>
+            <div class="grid one">
+              <label class="field">
+                <span>Notes</span>
+                <textarea name="notes" rows="4" placeholder="Anything else useful for the team"></textarea>
+              </label>
+            </div>
+          </section>
+
+          <div class="submit-row">
+            <p class="privacy-note">
+              By submitting, you confirm the information is accurate to the best of your knowledge.
+            </p>
+            <button type="submit" id="submit-button">Submit Intake Form</button>
+          </div>
+        </form>
+
+        <section id="success-state" class="success-state hidden">
+          <p class="eyebrow">Submission received</p>
+          <h3>Thank you</h3>
+          <p>Your intake form was submitted successfully. Our team will review it and follow up if anything else is
+            needed.</p>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+
 </html>
