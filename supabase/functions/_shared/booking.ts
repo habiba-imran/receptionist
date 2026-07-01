@@ -121,7 +121,6 @@ export function confirmationMessage(p: {
       `Doctor asignado: ${doc}`,
       "",
       "Nuestro equipo dara seguimiento pronto.",
-      "Responda STOP para no recibir mensajes.",
     ].join("\n");
   }
   return [
@@ -137,7 +136,6 @@ export function confirmationMessage(p: {
     `Assigned doctor: ${doc}`,
     "",
     "Our team will follow up shortly.",
-    "Reply STOP to opt out.",
   ].join("\n");
 }
 
@@ -187,36 +185,19 @@ export function formLinkMessage(
 
 export function formSubmittedMessage(p: {
   first_name?: string | null;
-  reason?: string | null;
-  appointment_text?: string | null;
-  patient_status?: string | null;
-  insurance_status?: string | null;
-  payer_name?: string | null;
-  member_id?: string | null;
-  assigned_doctor?: string | null;
   language?: string | null;
 }): string {
   const name = p.first_name || "there";
-  const reason = p.reason || "your cardiology visit";
-  const when = p.appointment_text || "the time we discussed";
-  const patientStatus = normalizePatientStatus(p.patient_status);
-  const insuranceLine = completedInsuranceSummary(p);
-  const doc = p.assigned_doctor || "your cardiologist";
   if ((p.language || "en").toLowerCase().startsWith("es")) {
     return [
       "Awaaz Labs Cardiology",
       "",
       `Hola ${name},`,
       "",
-      "Hemos recibido su formulario.",
-      `Motivo: ${reason}`,
-      `Horario: ${when}`,
-      `Paciente: ${patientStatus}`,
-      `Seguro: ${insuranceLine}`,
-      `Doctor asignado: ${doc}`,
+      "Hemos recibido sus detalles de seguro a traves del formulario.",
+      "Gracias.",
       "",
-      "Nuestro equipo revisara sus detalles y dara seguimiento pronto.",
-      "Responda STOP para no recibir mensajes.",
+      "Nuestro equipo revisara la informacion y dara seguimiento si es necesario.",
     ].join("\n");
   }
   return [
@@ -224,15 +205,10 @@ export function formSubmittedMessage(p: {
     "",
     `Hi ${name},`,
     "",
-    "We have received your form details.",
-    `Reason: ${reason}`,
-    `Appointment: ${when}`,
-    `Patient status: ${patientStatus}`,
-    `Insurance: ${insuranceLine}`,
-    `Assigned doctor: ${doc}`,
+    "We received your insurance details via the form.",
+    "Thank you.",
     "",
-    "Our team will review your details and follow up shortly.",
-    "Reply STOP to opt out.",
+    "Our team will review the information and follow up if needed.",
   ].join("\n");
 }
 
@@ -256,17 +232,6 @@ function insuranceSummary(p: {
 
   const status = p.insurance_status ? p.insurance_status.replace(/_/g, " ") : "pending";
   const payer = p.payer_name ? ` insurer ${p.payer_name}` : "";
-  const member = p.member_id ? `, member ID ${p.member_id}` : "";
-  return `${status}${payer}${member}`;
-}
-
-function completedInsuranceSummary(p: {
-  insurance_status?: string | null;
-  payer_name?: string | null;
-  member_id?: string | null;
-}): string {
-  const status = p.insurance_status ? p.insurance_status.replace(/_/g, " ") : "received";
-  const payer = p.payer_name ? `, payer ${p.payer_name}` : "";
   const member = p.member_id ? `, member ID ${p.member_id}` : "";
   return `${status}${payer}${member}`;
 }

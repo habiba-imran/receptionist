@@ -98,14 +98,14 @@ export function getStatusTone(
 
   if (kind === "confirmation") {
     if (normalized === "sent") return "success";
-    if (normalized === "pending") return "warning";
+    if (normalized === "pending" || normalized === "skipped_incomplete") return "warning";
     if (normalized === "failed") return "danger";
     return "neutral";
   }
 
   if (kind === "form") {
     if (normalized === "submitted" || normalized === "sent") return "success";
-    if (normalized === "not_sent") return "warning";
+    if (normalized === "not_sent" || normalized === "skipped_incomplete") return "warning";
     if (normalized === "failed") return "danger";
     return "neutral";
   }

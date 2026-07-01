@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
 async function runPostCallMessaging(callId: string, fallbackNumber: string) {
   const db = admin();
   const { data: b } = await db.from("bookings")
-    .select("id, intake_method, form_status, confirmation_status, contact_number, first_name, reason, appointment_text, patient_status, insurance_status, payer_name, member_id, assigned_doctor, language, whatsapp_suitable")
+    .select("id, intake_method, form_status, confirmation_status, contact_number, first_name, reason, appointment_text, patient_status, insurance_status, payer_name, member_id, assigned_doctor, language, whatsapp_suitable, needs_review, review_reasons")
     .eq("call_id", callId).maybeSingle();
   if (!b) return;
   const to = b.contact_number ?? fallbackNumber ?? "";
@@ -35,8 +35,14 @@ async function runPostCallMessaging(callId: string, fallbackNumber: string) {
   const preferWhatsapp = b.whatsapp_suitable === true;
   if (!preferWhatsapp) return;
 
+  const blockers = getPostCallMessageBlockers(b);
+  if (blockers.length > 0) {
+    await markIncompleteMessaging(db, callId, b, blockers);
+    return;
+  }
+
   if (b.intake_method === "form") {
-    if (!b.form_status || b.form_status === "not_sent") {
+    if (!b.form_status || b.form_status === "not_sent" || b.form_status === "skipped_incomplete") {
       const url = `${FORM_BASE_URL}?cid=${encodeURIComponent(callId)}&lang=${b.language ?? "en"}`;
       const msg = formLinkMessage(url, b.language, b);
       const res = await sendSmart(to, msg, { preferWhatsapp });
@@ -44,7 +50,7 @@ async function runPostCallMessaging(callId: string, fallbackNumber: string) {
       if (res.status === "sent") await db.from("bookings").update({ form_status: "sent" }).eq("call_id", callId);
     }
   } else {
-    if (!b.confirmation_status || b.confirmation_status === "pending") {
+    if (!b.confirmation_status || b.confirmation_status === "pending" || b.confirmation_status === "skipped_incomplete") {
       const msg = confirmationMessage(b);
       const res = await sendSmart(to, msg, { preferWhatsapp });
       await logMsg(db, callId, b.id, "confirmation", res, msg);
@@ -93,6 +99,49 @@ async function logMsg(db: any, callId: string, bookingId: string | null, purpose
     channel: res.channel, provider: res.provider, to_number: res.to,
     body, status: res.status, provider_message_id: res.providerMessageId ?? null, error: res.error ?? null,
   });
+}
+
+function getPostCallMessageBlockers(b: {
+  intake_method?: string | null;
+  first_name?: string | null;
+  reason?: string | null;
+  appointment_text?: string | null;
+}): string[] {
+  const blockers: string[] = [];
+  if (!b.intake_method || !["voice", "form"].includes(b.intake_method)) blockers.push("intake_method");
+  if (!b.first_name) blockers.push("first_name");
+  if (!b.reason) blockers.push("reason");
+  if (!b.appointment_text) blockers.push("appointment_text");
+  return blockers;
+}
+
+async function markIncompleteMessaging(
+  db: any,
+  callId: string,
+  b: {
+    intake_method?: string | null;
+    review_reasons?: string[] | null;
+  },
+  blockers: string[]
+) {
+  const reviewReasons = Array.from(new Set([
+    ...((b.review_reasons ?? []).filter(Boolean)),
+    ...blockers.map((field) => `messaging_missing_${field}`),
+  ]));
+
+  const patch: Record<string, unknown> = {
+    needs_review: true,
+    review_reasons: reviewReasons,
+  };
+
+  if (b.intake_method === "form") {
+    patch.form_status = "skipped_incomplete";
+  } else {
+    patch.confirmation_status = "skipped_incomplete";
+    patch.confirmation_channel = null;
+  }
+
+  await db.from("bookings").update(patch).eq("call_id", callId);
 }
 
 function json(body: unknown, status = 200) {
