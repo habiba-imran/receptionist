@@ -2,14 +2,22 @@ export function toDigits(input?: string | null): string {
   return (input ?? "").replace(/[^\d]/g, "");
 }
 
-const DEFAULT_COUNTRY_CODE = toDigits(Deno.env.get("DEFAULT_COUNTRY_CODE")) || "92";
+const DEFAULT_COUNTRY_CODE = toDigits(Deno.env.get("DEFAULT_COUNTRY_CODE"));
 
 export function toE164(input?: string | null, defaultCc = DEFAULT_COUNTRY_CODE): string {
   let d = toDigits(input);
   if (!d) return "";
   if (d.startsWith("00")) d = d.slice(2);
-  if (d.length === 11 && d.startsWith("0")) d = defaultCc + d.slice(1);
-  if (d.length === 10) d = defaultCc + d;
+
+  const requireDefaultCountryCode = () => {
+    if (!defaultCc) {
+      throw new Error("DEFAULT_COUNTRY_CODE is required to normalize local phone numbers");
+    }
+    return defaultCc;
+  };
+
+  if (d.length === 11 && d.startsWith("0")) d = requireDefaultCountryCode() + d.slice(1);
+  if (d.length === 10) d = requireDefaultCountryCode() + d;
   return "+" + d;
 }
 

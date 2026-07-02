@@ -10,12 +10,12 @@ This project now sends post-call messages only through WhatsApp when the caller 
 
 ## Country Code
 
-Phone normalization now uses the `DEFAULT_COUNTRY_CODE` secret and falls back to `92` if that secret is not set.
+Phone normalization now uses the `DEFAULT_COUNTRY_CODE` secret only. There is no hardcoded fallback country code.
 
 Examples:
 
-- `3012345678` -> `+923012345678`
-- `+923012345678` -> `+923012345678`
+- If `DEFAULT_COUNTRY_CODE=1`, `3012345678` -> `+13012345678`
+- `+13012345678` -> `+13012345678`
 
 ## What Message Is Sent
 
@@ -50,7 +50,7 @@ GREEN_API_URL=https://api.green-api.com
 GREEN_ID_INSTANCE=your_green_api_instance_id
 GREEN_API_TOKEN=your_green_api_token
 
-DEFAULT_COUNTRY_CODE=92
+DEFAULT_COUNTRY_CODE=1
 FORM_BASE_URL=https://your-intake-form-site.vercel.app
 DEFAULT_DOCTOR=Dr. Adeel Rahman
 RETELL_SHARED_SECRET=your_retell_shared_secret
