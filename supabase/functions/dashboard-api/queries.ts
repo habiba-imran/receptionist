@@ -360,7 +360,7 @@ function mapCallBooking(
   const fromNumber = stringValue(call.from_number ?? raw.from_number);
   const toNumber = stringValue(call.to_number ?? raw.to_number);
   const start = timestampValue(call.start_timestamp) ?? row.call_started_at ?? row.created_at;
-  const active = !finalized && isActiveCallStatus(status);
+  const active = !finalized && isActiveCallStatus(status) && isFreshActiveCall(row.updated_at);
   const end = timestampValue(call.end_timestamp) ?? (active ? null : row.updated_at);
   const durationSeconds = end ? Math.max(0, Math.round((Date.parse(end) - Date.parse(start)) / 1000)) : 0;
   const triage = normalizeTriage(row.triage_flag);
@@ -449,6 +449,12 @@ function normalizeTriage(value: string | null): "none" | "low" | "high" | "urgen
 function isActiveCallStatus(status: string | null): boolean {
   if (!status) return false;
   return ["registered", "ongoing", "in_progress", "active"].includes(status.toLowerCase());
+}
+
+function isFreshActiveCall(updatedAt: string): boolean {
+  const updatedMs = Date.parse(updatedAt);
+  if (!Number.isFinite(updatedMs)) return false;
+  return Date.now() - updatedMs < 15 * 60 * 1000;
 }
 
 function isVobAgent(representative: string | null, raw: Record<string, unknown>): boolean {
