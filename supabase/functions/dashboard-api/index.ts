@@ -8,6 +8,7 @@
 //   GET  ?resource=appointments   list + filters (PHI rows or aggregate count)
 //   GET  ?resource=stats          dashboard stat tiles
 //   GET  ?resource=appointment&id single appointment full detail
+//   GET  ?resource=calls          Retell calls + transcript rows
 //   GET  ?resource=escalations    list + filters (PHI rows or aggregate count)
 //   GET  ?resource=escalation&id  single escalation detail
 //   GET  ?resource=escalation_stats escalation stat tiles
@@ -22,6 +23,7 @@ import {
   getEscalationStats,
   getStats,
   listAppointments,
+  listCalls,
   listEscalations,
 } from "./queries.ts";
 import type { Result } from "./types.ts";
@@ -50,6 +52,9 @@ Deno.serve(async (req) => {
         case "appointment":
           result = await getAppointmentDetail(db, identity, url.searchParams.get("id") ?? "");
           break;
+        case "calls":
+          result = await listCalls(db, identity, url);
+          break;
         case "escalations":
           result = await listEscalations(db, identity, url);
           break;
@@ -60,7 +65,7 @@ Deno.serve(async (req) => {
           result = await getEscalationStats(db);
           break;
         default:
-          result = fail(400, "unknown_resource", "resource must be one of: appointments, stats, appointment, escalations, escalation, escalation_stats");
+          result = fail(400, "unknown_resource", "resource must be one of: appointments, stats, appointment, calls, escalations, escalation, escalation_stats");
       }
       return toResponse(result);
     }

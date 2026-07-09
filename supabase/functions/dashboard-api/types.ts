@@ -259,6 +259,58 @@ export type ListResponse =
   | { rows: AppointmentRowDto[]; total: number }
   | { kind: "aggregate"; total: number };
 
+export interface DbCallBookingRow {
+  id: string;
+  call_id: string;
+  created_at: string;
+  updated_at: string;
+  call_started_at: string | null;
+  representative: string | null;
+  practice: string | null;
+  language: string | null;
+  contact_number: string | null;
+  first_name: string | null;
+  full_legal_name: string | null;
+  reason: string | null;
+  appointment_text: string | null;
+  patient_status: string | null;
+  insurance_status: string | null;
+  triage_flag: string | null;
+  transfer_initiated: boolean | null;
+  transcript: string | null;
+  call_summary: string | null;
+  recording_url: string | null;
+  raw_payload: Record<string, unknown> | null;
+}
+
+export interface CallTranscriptTurnDto {
+  speaker: "agent" | "patient";
+  at: string;
+  text: string;
+}
+
+export interface CallRowDto {
+  id: string;
+  callId: string;
+  at: string;
+  updatedAt: string;
+  direction: "inbound" | "outbound";
+  agent: "receptionist" | "vob";
+  patient: PatientSummaryDto;
+  durationSeconds: number;
+  disposition: string;
+  triage: TriageLevel;
+  locationId: string | null;
+  locationName: string | null;
+  recordingUrl: string | null;
+  transcript: CallTranscriptTurnDto[];
+  summary: string | null;
+}
+
+export type CallsResponse =
+  | { rows: CallRowDto[]; total: number }
+  | { kind: "aggregate"; total: number };
+
 export interface StatsDto {
   bookedToday: number;
   upcomingNext7Days: number;

@@ -3,8 +3,12 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import type {
   AppointmentDetailDto,
+  CallsResponse,
+  CallRowDto,
+  CallTranscriptTurnDto,
   DbAppointmentDetailRow,
   DbAppointmentRow,
+  DbCallBookingRow,
   DbEscalationRow,
   EscalationListResponse,
   EscalationRowDto,
@@ -29,6 +33,7 @@ import {
   buildPatientSearchOr,
   DEFAULT_TZ,
   isUuid,
+  maskPhone,
   parseYmd,
   safeTimezone,
   tzTodayRange,
@@ -287,6 +292,148 @@ export async function getAppointmentDetail(
   }
 
   return ok({ ...mapRow(row, transcriptIds), vob: mapVobDetail(row) });
+}
+
+// ---------- GET ?resource=calls ----------
+
+export async function listCalls(
+  db: SupabaseClient,
+  identity: Identity,
+  url: URL,
+): Promise<Result<CallsResponse>> {
+  const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? 80) || 80, 1), 200);
+
+  const countQuery = db
+    .from("bookings")
+    .select("id", { count: "exact", head: true }) as unknown as CountQuery;
+  const { count, error: countError } = await countQuery;
+  if (countError !== null) {
+    console.error("dashboard-api: calls count failed", countError);
+    return fail(500, "internal_error", "Could not load calls");
+  }
+
+  if (identity.mode !== "PHI_BAA") {
+    return ok({ kind: "aggregate", total: count ?? 0 });
+  }
+
+  const { data, error } = await db
+    .from("bookings")
+    .select(
+      "id,call_id,created_at,updated_at,call_started_at,representative,practice,language," +
+        "contact_number,first_name,full_legal_name,reason,appointment_text,patient_status," +
+        "insurance_status,triage_flag,transfer_initiated,transcript,call_summary,recording_url,raw_payload",
+      { count: "exact" },
+    )
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+
+  if (error !== null) {
+    console.error("dashboard-api: calls list failed", error);
+    return fail(500, "internal_error", "Could not load calls");
+  }
+
+  return ok({
+    rows: ((data ?? []) as DbCallBookingRow[]).map(mapCallBooking),
+    total: count ?? data?.length ?? 0,
+  });
+}
+
+function mapCallBooking(row: DbCallBookingRow): CallRowDto {
+  const raw = row.raw_payload ?? {};
+  const call = objectValue(raw.call) ?? objectValue(objectValue(raw.data)?.call) ?? {};
+  const status = stringValue(call.call_status ?? raw.call_status);
+  const fromNumber = stringValue(call.from_number ?? raw.from_number);
+  const toNumber = stringValue(call.to_number ?? raw.to_number);
+  const start = timestampValue(call.start_timestamp) ?? row.call_started_at ?? row.created_at;
+  const end = timestampValue(call.end_timestamp) ?? (isActiveCallStatus(status) ? null : row.updated_at);
+  const durationSeconds = end ? Math.max(0, Math.round((Date.parse(end) - Date.parse(start)) / 1000)) : 0;
+  const triage = normalizeTriage(row.triage_flag);
+  const full = (row.full_legal_name ?? row.first_name ?? "").trim();
+  const nameParts = full.split(/\s+/).filter(Boolean);
+  const firstName = row.first_name ?? nameParts[0] ?? null;
+  const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : null;
+
+  return {
+    id: row.call_id,
+    callId: row.call_id,
+    at: start,
+    updatedAt: row.updated_at,
+    direction: toNumber ? "inbound" : fromNumber ? "outbound" : "inbound",
+    agent: isVobAgent(row.representative, raw) ? "vob" : "receptionist",
+    patient: {
+      firstName,
+      lastName,
+      fullName: full || firstName,
+      phoneMasked: maskPhone(row.contact_number),
+      phoneE164: null,
+    },
+    durationSeconds,
+    disposition: isActiveCallStatus(status)
+      ? "in_progress"
+      : row.transfer_initiated || triage === "high" || triage === "urgent"
+      ? "escalated"
+      : row.appointment_text
+      ? "booked"
+      : "info_only",
+    triage,
+    locationId: null,
+    locationName: row.practice ?? "Awaaz Labs Cardiology",
+    recordingUrl: row.recording_url,
+    transcript: parseTranscript(row.transcript, start),
+    summary: row.call_summary,
+  };
+}
+
+function parseTranscript(transcript: string | null, fallbackAt: string): CallTranscriptTurnDto[] {
+  if (!transcript) return [];
+  return transcript
+    .split(/\r?\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const match = line.match(/^(agent|assistant|ai|user|patient|caller|customer)\s*:\s*(.+)$/i);
+      const role = (match?.[1] ?? "").toLowerCase();
+      return {
+        speaker: role === "agent" || role === "assistant" || role === "ai" ? "agent" : "patient",
+        at: fallbackAt,
+        text: match?.[2]?.trim() || line,
+      };
+    });
+}
+
+function normalizeTriage(value: string | null): "none" | "low" | "high" | "urgent" {
+  const v = (value ?? "").toLowerCase();
+  if (v.includes("urgent") || v.includes("emergency")) return "urgent";
+  if (v.includes("high")) return "high";
+  if (v.includes("low") || v.includes("chest_pain")) return "low";
+  return "none";
+}
+
+function isActiveCallStatus(status: string | null): boolean {
+  if (!status) return false;
+  return ["registered", "ongoing", "in_progress", "active"].includes(status.toLowerCase());
+}
+
+function isVobAgent(representative: string | null, raw: Record<string, unknown>): boolean {
+  const hay = [representative, stringValue(objectValue(raw.call)?.agent_name), stringValue(objectValue(raw.call)?.agent_id)]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return hay.includes("vera") || hay.includes("vob") || hay.includes("agent_c8ad10f68136aafcbc25821e51");
+}
+
+function objectValue(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function stringValue(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function timestampValue(value: unknown): string | null {
+  if (typeof value !== "number") return null;
+  const ms = value > 10_000_000_000 ? value : value * 1000;
+  return new Date(ms).toISOString();
 }
 
 // ---------- GET ?resource=stats ----------
