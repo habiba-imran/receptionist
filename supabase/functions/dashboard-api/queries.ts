@@ -302,6 +302,10 @@ export async function listCalls(
   url: URL,
 ): Promise<Result<CallsResponse>> {
   const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? 80) || 80, 1), 200);
+  const locationId = url.searchParams.get("location_id");
+  if (locationId !== null && !isUuid(locationId)) {
+    return fail(400, "bad_request", "location_id must be a UUID");
+  }
 
   const countQuery = db
     .from("bookings")
@@ -332,13 +336,22 @@ export async function listCalls(
     return fail(500, "internal_error", "Could not load calls");
   }
 
+  const defaultLocation = await resolveDefaultLocation(db);
+  const rows = ((data ?? []) as DbCallBookingRow[])
+    .map((row) => mapCallBooking(row, identity, defaultLocation))
+    .filter((row) => locationId === null || row.locationId === locationId);
+
   return ok({
-    rows: ((data ?? []) as DbCallBookingRow[]).map(mapCallBooking),
+    rows,
     total: count ?? data?.length ?? 0,
   });
 }
 
-function mapCallBooking(row: DbCallBookingRow): CallRowDto {
+function mapCallBooking(
+  row: DbCallBookingRow,
+  identity: Identity,
+  defaultLocation: { id: string | null; name: string | null },
+): CallRowDto {
   const raw = row.raw_payload ?? {};
   const call = objectValue(raw.call) ?? objectValue(objectValue(raw.data)?.call) ?? {};
   const transcriptCrm = objectValue(raw.transcript_crm) ?? {};
@@ -379,12 +392,33 @@ function mapCallBooking(row: DbCallBookingRow): CallRowDto {
       ? "booked"
       : "info_only",
     triage,
-    locationId: null,
-    locationName: row.practice ?? "Awaaz Labs Cardiology",
-    recordingUrl: row.recording_url,
-    transcript: parseTranscript(row.transcript, start),
+    locationId: defaultLocation.id,
+    locationName: row.practice ?? defaultLocation.name ?? "Awaaz Labs Cardiology",
+    recordingUrl: canAccessCallMedia(identity) ? row.recording_url : null,
+    transcript: canAccessCallMedia(identity) ? parseTranscript(row.transcript, start) : null,
     summary: row.call_summary,
   };
+}
+
+async function resolveDefaultLocation(db: SupabaseClient): Promise<{ id: string | null; name: string | null }> {
+  const { data, error } = await db
+    .from("locations")
+    .select("id,name")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error !== null) {
+    console.error("dashboard-api: default location lookup failed", error);
+    return { id: null, name: null };
+  }
+  return {
+    id: typeof data?.id === "string" ? data.id : null,
+    name: typeof data?.name === "string" ? data.name : null,
+  };
+}
+
+function canAccessCallMedia(identity: Identity): boolean {
+  return identity.mode === "PHI_BAA" && identity.role !== "VIEWER";
 }
 
 function parseTranscript(transcript: string | null, fallbackAt: string): CallTranscriptTurnDto[] {

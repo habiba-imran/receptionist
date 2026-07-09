@@ -303,7 +303,7 @@ export interface CallRowDto {
   locationId: string | null;
   locationName: string | null;
   recordingUrl: string | null;
-  transcript: CallTranscriptTurnDto[];
+  transcript: CallTranscriptTurnDto[] | null;
   summary: string | null;
 }
 
