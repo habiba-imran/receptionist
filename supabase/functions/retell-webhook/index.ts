@@ -1,4 +1,5 @@
 import { admin, background, checkSecret } from "../_shared/supa.ts";
+import { invalidateDashboardCache } from "../_shared/dashboard-cache.ts";
 import { sendSmart } from "../_shared/messaging.ts";
 import { buildBookingRow, confirmationMessage, formLinkMessage, patientAcct } from "../_shared/booking.ts";
 import { sendAlert } from "../_shared/alert.ts";
@@ -72,6 +73,7 @@ async function runPostCallMessaging(callId: string, fallbackNumber: string) {
       const res = await sendSmart(to, msg, { preferWhatsapp });
       await logMsg(db, callId, b.id, "form_link", res, msg);
       if (res.status === "sent") await db.from("bookings").update({ form_status: "sent" }).eq("call_id", callId);
+      background(invalidateDashboardCache());
     }
   } else {
     if (!b.confirmation_status || b.confirmation_status === "pending" || b.confirmation_status === "skipped_incomplete") {
@@ -82,6 +84,7 @@ async function runPostCallMessaging(callId: string, fallbackNumber: string) {
         confirmation_status: res.status === "sent" ? "sent" : "failed",
         confirmation_channel: res.status === "sent" ? res.channel : null,
       }).eq("call_id", callId);
+      background(invalidateDashboardCache());
     }
   }
 }
@@ -147,6 +150,7 @@ async function handleAnalyzed(call: any, callId: string) {
   }
 
   await runPostCallMessaging(callId, call.from_number ?? "");
+  background(invalidateDashboardCache());
 }
 
 function buildExistingPostCallPatch(existing: Record<string, unknown>, custom: Record<string, unknown>): Record<string, unknown> {
@@ -317,6 +321,7 @@ async function markIncompleteMessaging(
   }
 
   await db.from("bookings").update(patch).eq("call_id", callId);
+  background(invalidateDashboardCache());
 }
 
 function json(body: unknown, status = 200) {

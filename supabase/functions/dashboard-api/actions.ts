@@ -1,6 +1,8 @@
 ﻿// POST actions: reveal_phone, status_change, add_note, record_search.
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { background } from "../_shared/supa.ts";
+import { invalidateDashboardCache } from "../_shared/dashboard-cache.ts";
 import { syncBookingToDomain } from "../_shared/sync-domain.ts";
 import type { AppointmentStatus, Identity, Result, StaffNoteDto } from "./types.ts";
 import { APPOINTMENT_STATUSES, fail, ok } from "./types.ts";
@@ -18,7 +20,8 @@ export async function handleAction(
   const record = body as Record<string, unknown>;
   const action = typeof record.action === "string" ? record.action : "";
 
-  switch (action) {
+  const result = await (async (): Promise<Result<unknown>> => {
+    switch (action) {
     case "reveal_phone":
       return await revealPhone(db, identity, record);
     case "status_change":
@@ -37,7 +40,18 @@ export async function handleAction(
       return await syncRecentBookings(db, identity, record);
     default:
       return fail(400, "unknown_action", "action must be one of: reveal_phone, status_change, add_note, record_search, acknowledge_escalation, escalation_note, resolve_escalation, sync_recent_bookings");
+    }
+  })();
+
+  if (result.ok && invalidatesDashboardCache(action)) {
+    background(invalidateDashboardCache());
   }
+
+  return result;
+}
+
+function invalidatesDashboardCache(action: string): boolean {
+  return !["reveal_phone", "record_search"].includes(action);
 }
 
 // ---------- reveal_phone ----------

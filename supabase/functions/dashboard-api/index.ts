@@ -15,6 +15,13 @@
 //   POST { action: ... }          appointment + escalation actions
 
 import { admin } from "../_shared/supa.ts";
+import {
+  cacheableResource,
+  dashboardCacheKey,
+  getDashboardCache,
+  isDashboardCacheEnabled,
+  setDashboardCache,
+} from "../_shared/dashboard-cache.ts";
 import { authenticate, corsHeaders } from "./auth.ts";
 import { handleAction } from "./actions.ts";
 import {
@@ -41,6 +48,13 @@ Deno.serve(async (req) => {
     if (req.method === "GET") {
       const url = new URL(req.url);
       const resource = url.searchParams.get("resource") ?? "";
+      const cacheResource = cacheableResource(resource);
+      const cacheKey = cacheResource ? dashboardCacheKey(cacheResource, url, identity) : null;
+      if (cacheResource && cacheKey && isDashboardCacheEnabled()) {
+        const cached = await getDashboardCache<unknown>(cacheKey);
+        if (cached !== null) return toResponse({ ok: true, data: cached });
+      }
+
       let result: Result<unknown>;
       switch (resource) {
         case "appointments":
@@ -66,6 +80,9 @@ Deno.serve(async (req) => {
           break;
         default:
           result = fail(400, "unknown_resource", "resource must be one of: appointments, stats, appointment, calls, escalations, escalation, escalation_stats");
+      }
+      if (result.ok && cacheResource && cacheKey && isDashboardCacheEnabled()) {
+        await setDashboardCache(cacheKey, result.data, cacheResource);
       }
       return toResponse(result);
     }

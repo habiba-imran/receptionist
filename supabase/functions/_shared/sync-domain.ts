@@ -7,6 +7,8 @@
 // keys and upserts — re-running never duplicates.
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { background } from "./supa.ts";
+import { invalidateDashboardCache } from "./dashboard-cache.ts";
 import { str, toE164, cleanMemberId } from "./validate.ts";
 import { patientAcct } from "./booking.ts";
 import { parseAppointmentText } from "./appointment-time.ts";
@@ -39,6 +41,7 @@ const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 export async function syncBookingToDomain(db: SupabaseClient, callId: string): Promise<void> {
   try {
     await sync(db, callId);
+    background(invalidateDashboardCache());
   } catch (e) {
     console.error("sync-domain: error syncing", callId, e instanceof Error ? e.message : String(e));
   }
