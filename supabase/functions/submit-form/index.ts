@@ -2,6 +2,7 @@ import { admin, background } from "../_shared/supa.ts";
 import { buildBookingRow, formSubmittedMessage } from "../_shared/booking.ts";
 import { sendSmart } from "../_shared/messaging.ts";
 import { parseDateOnly, str } from "../_shared/validate.ts";
+import { syncBookingToDomain } from "../_shared/sync-domain.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -54,6 +55,7 @@ Deno.serve(async (req) => {
 
   const { error } = await db.from("bookings").upsert(row, { onConflict: "call_id" });
   if (error) { console.error("submit-form error", error); return json({ error: "save_failed" }, 500); }
+  background(syncBookingToDomain(db, callId));
 
   background((async () => {
     const { data: b } = await db.from("bookings")

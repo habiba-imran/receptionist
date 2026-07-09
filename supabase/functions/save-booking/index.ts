@@ -1,5 +1,6 @@
-import { admin, checkSecret } from "../_shared/supa.ts";
+import { admin, background, checkSecret } from "../_shared/supa.ts";
 import { buildBookingRow, patientAcct } from "../_shared/booking.ts";
+import { syncBookingToDomain } from "../_shared/sync-domain.ts";
 
 const DEFAULT_DOCTOR = Deno.env.get("DEFAULT_DOCTOR") ?? "Dr. Adeel Rahman";
 
@@ -29,6 +30,7 @@ Deno.serve(async (req) => {
 
   const { error } = await db.from("bookings").upsert(row, { onConflict: "call_id" });
   if (error) console.error("save-booking upsert error", error);
+  else background(syncBookingToDomain(db, callId));
 
   return json({ result: "saved" }, 200);
 });

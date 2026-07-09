@@ -2,6 +2,7 @@ import { admin } from "../_shared/supa.ts";
 import { background } from "../_shared/supa.ts";
 import { invalidateDashboardCache } from "../_shared/dashboard-cache.ts";
 import { buildBookingRow, patientAcct } from "../_shared/booking.ts";
+import { syncBookingToDomain } from "../_shared/sync-domain.ts";
 import type { ExtractedPatientData, ExtractionMode, FieldConfidence } from "./types.ts";
 import type { ValidationIssue } from "./validation.ts";
 
@@ -275,6 +276,7 @@ export async function upsertTranscriptCrm(args: UpsertArgs): Promise<{ updated: 
 
   const { error } = await db.from("bookings").upsert(row, { onConflict: "call_id" });
   if (error) throw error;
+  background(syncBookingToDomain(db, args.callId));
   background(invalidateDashboardCache());
   return { updated: Object.keys(patch).length > 0, fields: Object.keys(patch) };
 }

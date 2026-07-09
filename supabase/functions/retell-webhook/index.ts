@@ -3,6 +3,7 @@ import { invalidateDashboardCache } from "../_shared/dashboard-cache.ts";
 import { sendSmart } from "../_shared/messaging.ts";
 import { buildBookingRow, confirmationMessage, formLinkMessage, patientAcct } from "../_shared/booking.ts";
 import { sendAlert } from "../_shared/alert.ts";
+import { syncBookingToDomain } from "../_shared/sync-domain.ts";
 
 const DEFAULT_DOCTOR = Deno.env.get("DEFAULT_DOCTOR") ?? "Dr. Adeel Rahman";
 const FORM_BASE_URL = Deno.env.get("FORM_BASE_URL") ?? "https://YOUR-SITE.netlify.app/intake-form.html";
@@ -149,6 +150,7 @@ async function handleAnalyzed(call: any, callId: string) {
     await db.from("bookings").upsert(row, { onConflict: "call_id" });
   }
 
+  background(syncBookingToDomain(db, callId));
   await runPostCallMessaging(callId, call.from_number ?? "");
   background(invalidateDashboardCache());
 }
