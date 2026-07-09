@@ -39,14 +39,12 @@ export function maskPhone(phoneE164: string | null): string | null {
 }
 
 /** first/last name, falling back to splitting full_legal_name on whitespace. */
-export function patientName(p: DbPatientEmbed): { firstName: string | null; lastName: string | null } {
-  if (p.first_name || p.last_name) {
-    return { firstName: p.first_name, lastName: p.last_name };
-  }
-  const parts = p.full_legal_name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return { firstName: null, lastName: null };
-  if (parts.length === 1) return { firstName: parts[0], lastName: null };
-  return { firstName: parts[0], lastName: parts.slice(1).join(" ") };
+export function patientName(p: DbPatientEmbed): { firstName: string | null; lastName: string | null; fullName: string | null } {
+  const fullName = p.full_legal_name?.trim() || null;
+  const parts = (fullName ?? "").split(/\s+/).filter(Boolean);
+  const firstName = p.first_name || parts[0] || null;
+  const lastName = p.last_name || (parts.length > 1 ? parts.slice(1).join(" ") : null);
+  return { firstName, lastName, fullName };
 }
 
 /**

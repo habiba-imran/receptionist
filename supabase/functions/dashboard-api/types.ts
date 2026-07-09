@@ -172,6 +172,7 @@ export interface DbAppointmentDetailRow extends Omit<DbAppointmentRow, "vob"> {
 export interface PatientSummaryDto {
   firstName: string | null;
   lastName: string | null;
+  fullName: string | null;
   phoneMasked: string | null;
   phoneE164: null; // always null in list/detail; reveal_phone is the audited path
 }

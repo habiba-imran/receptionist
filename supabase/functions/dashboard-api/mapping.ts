@@ -44,6 +44,7 @@ export function mapRow(
     patient: {
       firstName: name.firstName,
       lastName: name.lastName,
+      fullName: name.fullName,
       phoneMasked: maskPhone(row.patient.phone_e164),
       phoneE164: null,
     },
