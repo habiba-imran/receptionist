@@ -171,6 +171,9 @@ async function handleAnalyzed(call: any, callId: string) {
     const transcriptCrm = existingRaw.transcript_crm && typeof existingRaw.transcript_crm === "object"
       ? existingRaw.transcript_crm as Record<string, unknown>
       : {};
+    if (!call.transcript) delete auditPatch.transcript;
+    if (!analysis.call_summary) delete auditPatch.call_summary;
+    if (!call.recording_url) delete auditPatch.recording_url;
     auditPatch.raw_payload = {
       ...existingRaw,
       custom_analysis_data: custom,

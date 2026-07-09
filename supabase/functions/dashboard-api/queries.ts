@@ -394,7 +394,9 @@ function mapCallBooking(
     triage,
     locationId: defaultLocation.id,
     locationName: row.practice ?? defaultLocation.name ?? "Awaaz Labs Cardiology",
-    recordingUrl: canAccessCallMedia(identity) ? row.recording_url : null,
+    recordingUrl: canAccessCallMedia(identity)
+      ? stringValue(row.recording_url ?? call.recording_url ?? raw.recording_url)
+      : null,
     transcript: canAccessCallMedia(identity) ? parseTranscript(row.transcript, start) : null,
     summary: row.call_summary,
   };
