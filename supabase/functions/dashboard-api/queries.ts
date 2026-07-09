@@ -341,11 +341,14 @@ export async function listCalls(
 function mapCallBooking(row: DbCallBookingRow): CallRowDto {
   const raw = row.raw_payload ?? {};
   const call = objectValue(raw.call) ?? objectValue(objectValue(raw.data)?.call) ?? {};
+  const transcriptCrm = objectValue(raw.transcript_crm) ?? {};
+  const finalized = transcriptCrm.finalized === true || stringValue(transcriptCrm.last_event) === "call_ended";
   const status = stringValue(call.call_status ?? raw.call_status);
   const fromNumber = stringValue(call.from_number ?? raw.from_number);
   const toNumber = stringValue(call.to_number ?? raw.to_number);
   const start = timestampValue(call.start_timestamp) ?? row.call_started_at ?? row.created_at;
-  const end = timestampValue(call.end_timestamp) ?? (isActiveCallStatus(status) ? null : row.updated_at);
+  const active = !finalized && isActiveCallStatus(status);
+  const end = timestampValue(call.end_timestamp) ?? (active ? null : row.updated_at);
   const durationSeconds = end ? Math.max(0, Math.round((Date.parse(end) - Date.parse(start)) / 1000)) : 0;
   const triage = normalizeTriage(row.triage_flag);
   const full = (row.full_legal_name ?? row.first_name ?? "").trim();
@@ -368,7 +371,7 @@ function mapCallBooking(row: DbCallBookingRow): CallRowDto {
       phoneE164: null,
     },
     durationSeconds,
-    disposition: isActiveCallStatus(status)
+    disposition: active
       ? "in_progress"
       : row.transfer_initiated || triage === "high" || triage === "urgent"
       ? "escalated"

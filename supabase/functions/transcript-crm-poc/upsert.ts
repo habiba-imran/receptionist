@@ -398,13 +398,21 @@ function buildRawPayload(existingRaw: unknown, args: UpsertArgs, updatedFields: 
   const base = existingRaw && typeof existingRaw === "object" && !Array.isArray(existingRaw)
     ? existingRaw as Record<string, unknown>
     : {};
+  const existingCall = base.call && typeof base.call === "object" && !Array.isArray(base.call)
+    ? base.call as Record<string, unknown>
+    : {};
+  const callContext = {
+    ...existingCall,
+    ...(args.callContext ?? {}),
+  };
+  const callStatus = stringValue(callContext.call_status);
+  if (args.event === "call_ended" && (!callStatus || isActiveCallStatus(callStatus))) {
+    callContext.call_status = "ended";
+  }
 
   return {
     ...base,
-    call: {
-      ...(base.call && typeof base.call === "object" && !Array.isArray(base.call) ? base.call as Record<string, unknown> : {}),
-      ...(args.callContext ?? {}),
-    },
+    call: callContext,
     transcript_crm: {
       last_event: args.event,
       mode: args.mode,
@@ -427,6 +435,10 @@ function timestampValue(value: unknown): string | null {
   if (typeof value !== "number") return null;
   const ms = value > 10_000_000_000 ? value : value * 1000;
   return new Date(ms).toISOString();
+}
+
+function isActiveCallStatus(status: string): boolean {
+  return ["registered", "ongoing", "in_progress", "active"].includes(status.toLowerCase());
 }
 
 function compactExtraction(extraction: ExtractedPatientData): Record<string, unknown> {
