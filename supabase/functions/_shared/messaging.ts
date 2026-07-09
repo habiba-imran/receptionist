@@ -1,8 +1,12 @@
 import { toDigits, toE164 } from "./validate.ts";
 
-const GREEN_URL = Deno.env.get("GREEN_API_URL") ?? "https://api.green-api.com";
-const GREEN_ID = Deno.env.get("GREEN_ID_INSTANCE") ?? "";
-const GREEN_TOKEN = Deno.env.get("GREEN_API_TOKEN") ?? "";
+const GREEN_URL = cleanEnv("GREEN_API_URL", "https://api.green-api.com").replace(/\/+$/, "");
+const GREEN_ID = cleanEnv("GREEN_API_INSTANCE_ID") || cleanEnv("GREEN_API_INSTANCE") || cleanEnv("GREEN_ID_INSTANCE");
+const GREEN_TOKEN = cleanEnv("GREEN_API_TOKEN");
+
+function cleanEnv(name: string, fallback = ""): string {
+  return (Deno.env.get(name) ?? fallback).trim();
+}
 
 export type SendResult = {
   channel: "whatsapp";

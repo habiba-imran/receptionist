@@ -168,9 +168,11 @@ type UpsertArgs = {
   callId: string;
   event: "transcript_updated" | "call_ended";
   mode: ExtractionMode;
+  transcript: string;
   transcriptLength: number;
   extractedAt: string;
   extraction: ExtractedPatientData;
+  callContext?: Record<string, unknown>;
   validationErrors?: ValidationIssue[];
 };
 
@@ -259,6 +261,7 @@ export async function upsertTranscriptCrm(args: UpsertArgs): Promise<{ updated: 
     call_id: args.callId,
     raw_payload: metadata,
   };
+  applyCallAuditFields(row, args);
 
   if (!existing) {
     Object.assign(row, {
@@ -378,7 +381,17 @@ function buildValidationReviewReasons(validationErrors: ValidationIssue[]): stri
 async function updateMetadataOnly(db: any, existing: Record<string, unknown> | null, args: UpsertArgs) {
   if (!existing) return;
   const raw_payload = buildRawPayload(existing.raw_payload, args, []);
-  await db.from("bookings").update({ raw_payload }).eq("call_id", args.callId);
+  const patch: Record<string, unknown> = { raw_payload };
+  applyCallAuditFields(patch, args);
+  await db.from("bookings").update(patch).eq("call_id", args.callId);
+}
+
+function applyCallAuditFields(row: Record<string, unknown>, args: UpsertArgs): void {
+  if (args.transcript) row.transcript = args.transcript;
+  const recordingUrl = stringValue(args.callContext?.recording_url);
+  if (recordingUrl) row.recording_url = recordingUrl;
+  const startedAt = timestampValue(args.callContext?.start_timestamp);
+  if (startedAt) row.call_started_at = startedAt;
 }
 
 function buildRawPayload(existingRaw: unknown, args: UpsertArgs, updatedFields: string[]) {
@@ -388,6 +401,10 @@ function buildRawPayload(existingRaw: unknown, args: UpsertArgs, updatedFields: 
 
   return {
     ...base,
+    call: {
+      ...(base.call && typeof base.call === "object" && !Array.isArray(base.call) ? base.call as Record<string, unknown> : {}),
+      ...(args.callContext ?? {}),
+    },
     transcript_crm: {
       last_event: args.event,
       mode: args.mode,
@@ -400,6 +417,16 @@ function buildRawPayload(existingRaw: unknown, args: UpsertArgs, updatedFields: 
       extraction: compactExtraction(args.extraction),
     },
   };
+}
+
+function stringValue(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function timestampValue(value: unknown): string | null {
+  if (typeof value !== "number") return null;
+  const ms = value > 10_000_000_000 ? value : value * 1000;
+  return new Date(ms).toISOString();
 }
 
 function compactExtraction(extraction: ExtractedPatientData): Record<string, unknown> {

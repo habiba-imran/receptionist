@@ -109,7 +109,7 @@ export async function extractPatientData(
     throw new Error("Groq response did not include message content");
   }
 
-  return normalizeExtraction(JSON.parse(content));
+  return normalizeExtraction(JSON.parse(content), transcript);
 }
 
 export async function extractPatientDataIncremental(
@@ -165,7 +165,7 @@ export async function extractPatientDataIncremental(
     throw new Error("Groq response did not include message content");
   }
 
-  return normalizeExtraction(JSON.parse(content));
+  return normalizeExtraction(JSON.parse(content), newTranscript);
 }
 
 function buildSystemPrompt(mode: ExtractionMode): string {
@@ -246,7 +246,7 @@ function buildIncrementalSystemPrompt(): string {
   ].join("\n");
 }
 
-function normalizeExtraction(raw: Record<string, unknown>): ExtractedPatientData {
+function normalizeExtraction(raw: Record<string, unknown>, transcript = ""): ExtractedPatientData {
   const normalized = { ...JSON_SCHEMA_EXAMPLE };
 
   for (const key of Object.keys(JSON_SCHEMA_EXAMPLE) as Array<keyof ExtractedPatientData>) {
@@ -256,8 +256,64 @@ function normalizeExtraction(raw: Record<string, unknown>): ExtractedPatientData
   }
 
   normalized.field_confidence = normalizeFieldConfidence(raw.field_confidence);
+  enforceSpokenName(normalized, transcript);
   enforceFieldBoundaries(normalized);
   return normalized;
+}
+
+function enforceSpokenName(extraction: ExtractedPatientData, transcript: string): void {
+  const spoken = extractSpokenFullName(transcript);
+  if (!spoken) return;
+  const current = extraction.full_legal_name;
+  if (!current || namesDifferOnlyByNoisySpelling(current, spoken)) {
+    extraction.full_legal_name = spoken;
+    extraction.first_name = spoken.split(/\s+/)[0] ?? null;
+    extraction.field_confidence.full_legal_name = extraction.field_confidence.full_legal_name ?? "medium";
+    extraction.field_confidence.first_name = extraction.field_confidence.first_name ?? extraction.field_confidence.full_legal_name;
+  }
+}
+
+function extractSpokenFullName(transcript: string): string | null {
+  const lines = transcript.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  for (let i = 0; i < lines.length; i += 1) {
+    if (!/full legal name|patient'?s name|patient name|get.*name/i.test(lines[i])) continue;
+    for (let j = i + 1; j < Math.min(lines.length, i + 5); j += 1) {
+      if (/spell|could you spell|letter by letter/i.test(lines[j])) break;
+      const match = lines[j].match(/^(user|patient|caller|customer)\s*:\s*(.+)$/i);
+      const cleaned = (match?.[2] ?? lines[j]).replace(/[^\p{L}\s'-]/gu, " ").replace(/\s+/g, " ").trim();
+      if (looksLikeHumanFullName(cleaned)) return titleCaseName(cleaned);
+    }
+  }
+  return null;
+}
+
+function looksLikeHumanFullName(value: string): boolean {
+  const parts = value.split(/\s+/).filter(Boolean);
+  return parts.length >= 2 && parts.length <= 5 && parts.every((part) => /^\p{L}[\p{L}'-]{1,}$/u.test(part));
+}
+
+function namesDifferOnlyByNoisySpelling(current: string, spoken: string): boolean {
+  const c = current.toLowerCase().replace(/[^a-z]/g, "");
+  const s = spoken.toLowerCase().replace(/[^a-z]/g, "");
+  if (!c || !s || current.includes(".") || /\b[a-z]\b/i.test(current)) return true;
+  if (c === s) return false;
+  return levenshtein(c, s) <= 2;
+}
+
+function titleCaseName(value: string): string {
+  return value.split(/\s+/).map((part) => part ? `${part[0].toUpperCase()}${part.slice(1).toLowerCase()}` : part).join(" ");
+}
+
+function levenshtein(a: string, b: string): number {
+  const prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i += 1) {
+    const curr = [i];
+    for (let j = 1; j <= b.length; j += 1) {
+      curr[j] = Math.min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    prev.splice(0, prev.length, ...curr);
+  }
+  return prev[b.length];
 }
 
 function enforceFieldBoundaries(extraction: ExtractedPatientData): void {

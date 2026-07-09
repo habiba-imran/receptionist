@@ -91,9 +91,11 @@ Deno.serve(async (req) => {
       callId,
       event,
       mode,
+      transcript,
       transcriptLength: transcript.length,
       extractedAt: snapshot.extracted_at,
       extraction,
+      callContext: getCallContext(payload),
       validationErrors: validation_errors,
     });
 
@@ -131,6 +133,21 @@ function getCallId(payload: RetellWebhookPayload): string {
     payload.data?.call_id ??
     payload.call_id ??
     "";
+}
+
+function getCallContext(payload: RetellWebhookPayload): Record<string, unknown> {
+  const call = payload.call ?? payload.data?.call ?? {};
+  return {
+    call_id: getCallId(payload),
+    call_status: call.call_status,
+    agent_id: call.agent_id,
+    agent_name: call.agent_name,
+    from_number: call.from_number,
+    to_number: call.to_number,
+    start_timestamp: call.start_timestamp,
+    end_timestamp: call.end_timestamp,
+    recording_url: call.recording_url,
+  };
 }
 
 function extractTranscript(payload: RetellWebhookPayload): string {
