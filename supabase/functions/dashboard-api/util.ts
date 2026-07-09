@@ -30,12 +30,12 @@ export function parseYmd(value: string): Ymd | null {
   return { y, m, d };
 }
 
-/** "(•••) •••-1234" from the last 4 digits, or null when no phone on file. */
+/** "(***) ***-1234" from the last 4 digits, or null when no phone on file. */
 export function maskPhone(phoneE164: string | null): string | null {
   if (!phoneE164) return null;
   const digits = phoneE164.replace(/\D/g, "");
   if (digits.length < 4) return null;
-  return `(•••) •••-${digits.slice(-4)}`;
+  return `(***) ***-${digits.slice(-4)}`;
 }
 
 /** first/last name, falling back to splitting full_legal_name on whitespace. */

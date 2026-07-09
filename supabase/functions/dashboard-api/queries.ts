@@ -497,7 +497,7 @@ export async function getEscalationStats(db: SupabaseClient): Promise<Result<Esc
     const weekStartIso = new Date(now.getTime() - 7 * 86_400_000).toISOString();
 
     // Fetch all escalations with minimal fields for aggregate computation.
-    // No PHI crosses this boundary â€” only trigger/status/timestamps.
+    // No PHI crosses this boundary - only trigger/status/timestamps.
     const { data, error } = await db
       .from("escalations")
       .select("trigger,status,acknowledged_at,created_at")
@@ -524,7 +524,7 @@ export async function getEscalationStats(db: SupabaseClient): Promise<Result<Esc
         : (ackDeltas[ackDeltas.length / 2 - 1] + ackDeltas[ackDeltas.length / 2]) / 2
       : null;
 
-    // Trigger counts â€” initialize all triggers to 0
+    // Trigger counts - initialize all triggers to 0
     const triggerCounts: Record<string, number> = {};
     for (const t of ESCALATION_TRIGGERS) triggerCounts[t] = 0;
     for (const r of rows) {

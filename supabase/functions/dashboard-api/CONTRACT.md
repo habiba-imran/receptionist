@@ -138,7 +138,7 @@ All timestamps are ISO-8601 UTC strings (e.g. `"2026-07-09T14:30:00+00:00"`).
   "patient": {
     "firstName": "Maria",
     "lastName": "Gonzalez",
-    "phoneMasked": "(•••) •••-4821",
+    "phoneMasked": "(***) ***-4821",
     "phoneE164": null
   },
   "vobStatus": "verified",
@@ -161,7 +161,7 @@ Field notes:
   `last_name`; if both are null they are derived by splitting
   `full_legal_name` on whitespace (first token / remainder). Either can be
   null.
-- `patient.phoneMasked`: `"(•••) •••-NNNN"` from the last 4 digits of the
+- `patient.phoneMasked`: `"(***) ***-NNNN"` from the last 4 digits of the
   stored phone; `null` when the patient has no phone on file.
 - `patient.phoneE164`: **always `null`** in list and detail responses. Use the
   audited `reveal_phone` action to get the real number.

@@ -330,7 +330,7 @@ async function acknowledgeEscalation(
   const escalationId = uuidField(record, "escalationId");
   if (escalationId === null) return fail(400, "bad_request", "escalationId must be a UUID");
 
-  // Check current state â€” don't overwrite an existing acknowledgement
+  // Check current state - don't overwrite an existing acknowledgement
   const { data: existing, error: fetchError } = await db
     .from("escalations")
     .select("id,status,acknowledged_at,acknowledged_by")
@@ -365,7 +365,7 @@ async function acknowledgeEscalation(
     return ok({ id: escalationId, status: "acknowledged", acknowledgedAt: now, acknowledgedBy: identity.actor });
   }
 
-  // Already acknowledged or resolved â€” no-op success
+  // Already acknowledged or resolved - no-op success
   return ok({ id: escalationId, status: row.status, acknowledgedAt: row.acknowledged_at, acknowledgedBy: row.acknowledged_by });
 }
 
