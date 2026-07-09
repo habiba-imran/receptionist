@@ -1,9 +1,23 @@
 import { admin, background, checkSecret } from "../_shared/supa.ts";
 import { sendSmart } from "../_shared/messaging.ts";
 import { buildBookingRow, confirmationMessage, formLinkMessage, patientAcct } from "../_shared/booking.ts";
+import { sendAlert } from "../_shared/alert.ts";
 
 const DEFAULT_DOCTOR = Deno.env.get("DEFAULT_DOCTOR") ?? "Dr. Adeel Rahman";
 const FORM_BASE_URL = Deno.env.get("FORM_BASE_URL") ?? "https://YOUR-SITE.netlify.app/intake-form.html";
+const POST_CALL_COMPARE_FIELDS = [
+  "full_legal_name",
+  "dob",
+  "contact_number",
+  "payer_name",
+  "member_id",
+  "group_number",
+  "appointment_text",
+  "reason",
+  "insurance_status",
+  "prior_auth",
+  "prior_auth_number",
+];
 
 Deno.serve(async (req) => {
   if (!checkSecret(req)) return json({ error: "unauthorized" }, 401);
@@ -16,10 +30,20 @@ Deno.serve(async (req) => {
   const callId: string = call.call_id ?? "";
   if (!callId) return json({ received: true }, 200);
 
-  if (event === "call_ended") {
-    background(runPostCallMessaging(callId, call.from_number ?? ""));
+  if (event === "transcript_updated") {
+    background(forwardTranscriptEvent(payload).catch((error) => handleTranscriptForwardFailure(error, payload, "transcript_updated")));
+  } else if (event === "call_ended") {
+    background((async () => {
+      const route = getTranscriptRoute(payload);
+      await forwardTranscriptEvent(payload).catch((error) => handleTranscriptForwardFailure(error, payload, "call_ended", route));
+      if (route === "crm") {
+        await runPostCallMessaging(callId, call.from_number ?? "");
+      }
+    })());
   } else if (event === "call_analyzed") {
-    background(handleAnalyzed(call, callId));
+    if (getTranscriptRoute(payload) === "crm") {
+      background(handleAnalyzed(call, callId));
+    }
   }
   return json({ received: true }, 200);
 });
@@ -62,21 +86,46 @@ async function runPostCallMessaging(callId: string, fallbackNumber: string) {
   }
 }
 
+async function handleTranscriptForwardFailure(error: unknown, payload: any, event: string, route?: "crm" | "vob") {
+  console.error(`transcript forward ${event} failed`, error);
+  await sendAlert("Retell transcript forward failed", {
+    event,
+    route: route ?? getTranscriptRoute(payload),
+    call_id: payload.call?.call_id ?? payload.data?.call?.call_id ?? payload.call_id ?? "",
+    agent_id: payload.call?.agent_id ?? payload.data?.call?.agent_id ?? "",
+    agent_name: payload.call?.agent_name ?? payload.data?.call?.agent_name ?? "",
+    error: error instanceof Error ? error.message : String(error),
+  });
+}
+
 async function handleAnalyzed(call: any, callId: string) {
   const db = admin();
   const analysis = call.call_analysis ?? {};
   const custom = analysis.custom_analysis_data ?? {};
 
-  const auditPatch = {
+  const auditPatch: Record<string, unknown> = {
     transcript: call.transcript ?? null,
     call_summary: analysis.call_summary ?? null,
     recording_url: call.recording_url ?? null,
     raw_payload: { custom_analysis_data: custom },
   };
 
-  const { data: existing } = await db.from("bookings").select("id").eq("call_id", callId).maybeSingle();
+  const { data: existing } = await db.from("bookings").select("*").eq("call_id", callId).maybeSingle();
 
   if (existing) {
+    const existingRaw = existing.raw_payload && typeof existing.raw_payload === "object" ? existing.raw_payload as Record<string, unknown> : {};
+    const transcriptCrm = existingRaw.transcript_crm && typeof existingRaw.transcript_crm === "object"
+      ? existingRaw.transcript_crm as Record<string, unknown>
+      : {};
+    auditPatch.raw_payload = {
+      ...existingRaw,
+      custom_analysis_data: custom,
+      transcript_crm: {
+        ...transcriptCrm,
+        post_call_mismatches: comparePostCallExtraction(transcriptCrm.extraction, custom),
+      },
+    };
+    Object.assign(auditPatch, buildExistingPostCallPatch(existing, custom));
     await db.from("bookings").update(auditPatch).eq("call_id", callId);
   } else {
     const row: any = buildBookingRow({ ...custom, intake_method: custom.intake_method ?? "voice" }, { source: "webhook_recovery" });
@@ -100,6 +149,86 @@ async function handleAnalyzed(call: any, callId: string) {
   await runPostCallMessaging(callId, call.from_number ?? "");
 }
 
+function buildExistingPostCallPatch(existing: Record<string, unknown>, custom: Record<string, unknown>): Record<string, unknown> {
+  const patch: Record<string, unknown> = {};
+  let row: Record<string, unknown> = {};
+  try {
+    const input = { ...custom, intake_method: custom.intake_method ?? "voice" };
+    delete input.contact_number;
+    delete input.callback_number;
+    row = buildBookingRow(input, { source: "webhook_analysis_merge" });
+  } catch (_) {
+    row = {};
+  }
+
+  for (const field of ["dob", "email", "mailing_address", "gender"]) {
+    const value = row[field];
+    if (value === null || value === undefined || value === "") continue;
+    const current = existing[field];
+    if (current === null || current === undefined || current === "") {
+      patch[field] = value;
+    }
+  }
+
+  return patch;
+}
+
+async function forwardTranscriptEvent(payload: any) {
+  const route = getTranscriptRoute(payload);
+  const baseUrl = route === "vob"
+    ? Deno.env.get("TRANSCRIPT_VOB_FUNCTION_URL") ?? `${Deno.env.get("SUPABASE_URL")}/functions/v1/transcript-vob-poc`
+    : Deno.env.get("TRANSCRIPT_CRM_FUNCTION_URL") ?? `${Deno.env.get("SUPABASE_URL")}/functions/v1/transcript-crm-poc`;
+  const secret = Deno.env.get("RETELL_SHARED_SECRET") ?? "";
+  const url = secret ? `${baseUrl}?s=${encodeURIComponent(secret)}` : baseUrl;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`transcript ${route} forward failed: ${response.status} ${text.slice(0, 500)}`);
+  }
+}
+
+function getTranscriptRoute(payload: any): "crm" | "vob" {
+  const call = payload.call ?? payload.data?.call ?? {};
+  const agentId = String(call.agent_id ?? "").trim();
+  const agentName = String(call.agent_name ?? "").trim().toLowerCase();
+
+  const veraIds = parseCsvEnv("VERA_RETELL_AGENT_IDS");
+  const laylaIds = parseCsvEnv("LAYLA_RETELL_AGENT_IDS");
+  if (agentId && veraIds.has(agentId)) return "vob";
+  if (agentId && laylaIds.has(agentId)) return "crm";
+
+  const veraNames = parseCsvEnv("VERA_RETELL_AGENT_NAMES");
+  const laylaNames = parseCsvEnv("LAYLA_RETELL_AGENT_NAMES");
+  if (agentName && hasNameMatch(agentName, veraNames)) return "vob";
+  if (agentName && hasNameMatch(agentName, laylaNames)) return "crm";
+
+  if (agentName.includes("vera") || agentName.includes("vob") || agentName.includes("benefit")) return "vob";
+  return "crm";
+}
+
+function parseCsvEnv(name: string): Set<string> {
+  return new Set(
+    (Deno.env.get(name) ?? "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .map((value) => name.endsWith("_NAMES") ? value.toLowerCase() : value),
+  );
+}
+
+function hasNameMatch(agentName: string, configuredNames: Set<string>): boolean {
+  for (const configuredName of configuredNames) {
+    if (agentName === configuredName || agentName.includes(configuredName)) return true;
+  }
+  return false;
+}
+
 function getCrmCaptureScore(row: {
   first_name?: string | null;
   full_legal_name?: string | null;
@@ -113,6 +242,30 @@ function getCrmCaptureScore(row: {
   if (row.appointment_text) score += 1;
   if (row.patient_status) score += 1;
   return score;
+}
+
+function comparePostCallExtraction(groqExtraction: unknown, postCallExtraction: Record<string, unknown>) {
+  if (!groqExtraction || typeof groqExtraction !== "object" || Array.isArray(groqExtraction)) return [];
+  const groq = groqExtraction as Record<string, unknown>;
+  const mismatches = [];
+
+  for (const field of POST_CALL_COMPARE_FIELDS) {
+    const groqValue = normalizeCompareValue(groq[field]);
+    const postCallValue = normalizeCompareValue(postCallExtraction[field]);
+    if (!groqValue || !postCallValue || groqValue === postCallValue) continue;
+    mismatches.push({
+      field,
+      groq_value: groq[field],
+      post_call_value: postCallExtraction[field],
+    });
+  }
+
+  return mismatches;
+}
+
+function normalizeCompareValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "";
+  return String(value).trim().toLowerCase().replace(/\s+/g, " ");
 }
 
 async function logMsg(db: any, callId: string, bookingId: string | null, purpose: string, res: any, body: string) {

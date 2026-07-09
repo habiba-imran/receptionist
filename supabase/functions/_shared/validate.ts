@@ -9,6 +9,8 @@ export function toE164(input?: string | null, defaultCc = DEFAULT_COUNTRY_CODE):
   if (!d) return "";
   if (d.startsWith("00")) d = d.slice(2);
 
+  if (d.length < 8 || d.length > 15) return "";
+
   const requireDefaultCountryCode = () => {
     if (!defaultCc) {
       throw new Error("DEFAULT_COUNTRY_CODE is required to normalize local phone numbers");

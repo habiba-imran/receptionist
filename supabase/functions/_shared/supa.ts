@@ -22,7 +22,7 @@ export function background(p: Promise<unknown>) {
 
 export function checkSecret(req: Request): boolean {
   const want = Deno.env.get("RETELL_SHARED_SECRET") ?? "";
-  if (!want) return true;
+  if (!want) return false;
   const url = new URL(req.url);
   return url.searchParams.get("s") === want;
 }

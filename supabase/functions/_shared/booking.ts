@@ -1,4 +1,4 @@
-import { cleanMemberId, str, toBool, toE164, validateDob } from "./validate.ts";
+import { cleanMemberId, parseDateOnly, str, toBool, toE164, validateDob } from "./validate.ts";
 
 export function buildBookingRow(input: Record<string, unknown>, opts: { source: string }) {
   const reasons: string[] = [];
@@ -32,6 +32,7 @@ export function buildBookingRow(input: Record<string, unknown>, opts: { source: 
 
     reason,
     appointment_text,
+    appointment_at: resolveAppointmentAt(input.appointment_at, appointment_text),
     patient_status: str(input.patient_status),
     patient_status_unverified: toBool(input.patient_status_unverified) ?? false,
 
@@ -82,6 +83,88 @@ export function buildBookingRow(input: Record<string, unknown>, opts: { source: 
   clean.needs_review = row.needs_review;
   clean.review_reasons = row.review_reasons;
   return clean;
+}
+
+function resolveAppointmentAt(appointmentAtInput: unknown, appointmentText: string | null): string | null {
+  const explicitAppointment = normalizeAppointmentDateTime(appointmentAtInput);
+  if (explicitAppointment) return explicitAppointment;
+
+  if (!appointmentText) return null;
+  return resolveAppointmentFromText(appointmentText);
+}
+
+function normalizeAppointmentDateTime(value: unknown): string | null {
+  const text = str(value);
+  if (!text) return null;
+
+  const parsed = new Date(text);
+  if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+
+  const dateOnly = parseDateOnly(text);
+  if (dateOnly) return `${dateOnly}T00:00:00.000Z`;
+
+  return null;
+}
+
+function resolveAppointmentFromText(value: string): string | null {
+  const text = value.toLowerCase();
+  const time = parseTimeOfDay(text);
+  if (!time) return null;
+
+  const reference = new Date();
+  const baseDate = resolveBaseDate(text, reference);
+  if (!baseDate) return null;
+
+  const resolved = new Date(Date.UTC(baseDate.getUTCFullYear(), baseDate.getUTCMonth(), baseDate.getUTCDate(), time.hours, time.minutes, 0));
+  return Number.isNaN(resolved.getTime()) ? null : resolved.toISOString();
+}
+
+function resolveBaseDate(text: string, reference: Date): Date | null {
+  if (text.includes("tomorrow")) {
+    return new Date(Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth(), reference.getUTCDate() + 1));
+  }
+
+  if (text.includes("today")) {
+    return new Date(Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth(), reference.getUTCDate()));
+  }
+
+  const weekdayIndex = getWeekdayIndex(text);
+  if (weekdayIndex === null) return null;
+
+  const base = new Date(Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth(), reference.getUTCDate()));
+  const currentWeekday = base.getUTCDay();
+  let daysAhead = (weekdayIndex - currentWeekday + 7) % 7;
+  if (text.includes("next ")) {
+    daysAhead = daysAhead === 0 ? 7 : daysAhead + 7;
+  } else if (daysAhead === 0) {
+    daysAhead = 7;
+  }
+  base.setUTCDate(base.getUTCDate() + daysAhead);
+  return base;
+}
+
+function parseTimeOfDay(value: string): { hours: number; minutes: number } | null {
+  const match = value.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
+  if (!match) return null;
+
+  let hours = Number(match[1]);
+  const minutes = Number(match[2] ?? "0");
+  const meridiem = match[3];
+  if (!Number.isInteger(hours) || !Number.isInteger(minutes) || minutes < 0 || minutes > 59) return null;
+
+  if (meridiem === "pm" && hours < 12) hours += 12;
+  if (meridiem === "am" && hours === 12) hours = 0;
+  if (hours < 0 || hours > 23) return null;
+
+  return { hours, minutes };
+}
+
+function getWeekdayIndex(text: string): number | null {
+  const weekdays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  for (let index = 0; index < weekdays.length; index += 1) {
+    if (new RegExp(`\\b${weekdays[index]}\\b`).test(text)) return index;
+  }
+  return null;
 }
 
 export function patientAcct(callId: string): string {
