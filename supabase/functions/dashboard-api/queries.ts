@@ -1,4 +1,4 @@
-﻿// Read endpoints: ?resource=appointments | stats | appointment.
+// Read endpoints: ?resource=appointments | stats | appointment.
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import type {
@@ -43,6 +43,7 @@ const APPOINTMENT_COLUMNS =
 
 const EMBEDS_COMMON =
   "patient:patients!inner(first_name,last_name,full_legal_name,phone_e164)," +
+  "location:locations(name)," +
   "confirmation_attempts(id,at,outcome,channel)," +
   "timeline:appointment_events(id,at,label,actor)," +
   "staff_notes(id,at,author,body)," +

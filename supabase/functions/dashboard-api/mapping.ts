@@ -18,6 +18,7 @@ export function mapRow(
   return {
     id: row.id,
     locationId: row.location_id,
+    locationName: row.location?.name ?? null,
     patientId: row.patient_id,
     bookingId: row.booking_id,
     callId: row.call_id,

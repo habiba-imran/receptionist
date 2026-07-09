@@ -1,4 +1,4 @@
-﻿// Shared types and constants for the dashboard-api edge function.
+// Shared types and constants for the dashboard-api edge function.
 
 // ---------- identity ----------
 
@@ -160,6 +160,7 @@ export interface DbAppointmentRow {
   timeline: DbEventRow[];
   staff_notes: DbNoteRow[];
   booking: DbBookingEmbed | null;
+  location: { name: string | null } | null;
 }
 
 export interface DbAppointmentDetailRow extends Omit<DbAppointmentRow, "vob"> {
@@ -204,6 +205,7 @@ export interface BookingRefDto {
 export interface AppointmentRowDto {
   id: string;
   locationId: string;
+  locationName: string | null;
   patientId: string;
   bookingId: string | null;
   callId: string | null;
