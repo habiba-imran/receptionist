@@ -37,6 +37,7 @@ Deno.serve(async (req) => {
   } else if (event === "call_ended") {
     background((async () => {
       const route = getTranscriptRoute(payload);
+      await markCallEnded(callId, call);
       await forwardTranscriptEvent(payload).catch((error) => handleTranscriptForwardFailure(error, payload, "call_ended", route));
       if (route === "crm") {
         await runPostCallMessaging(callId, call.from_number ?? "");
@@ -49,6 +50,55 @@ Deno.serve(async (req) => {
   }
   return json({ received: true }, 200);
 });
+
+async function markCallEnded(callId: string, call: any) {
+  const db = admin();
+  const { data: existing } = await db.from("bookings")
+    .select("raw_payload,recording_url,transcript")
+    .eq("call_id", callId)
+    .maybeSingle();
+  if (!existing) return;
+
+  const existingRaw = existing.raw_payload && typeof existing.raw_payload === "object" && !Array.isArray(existing.raw_payload)
+    ? existing.raw_payload as Record<string, unknown>
+    : {};
+  const existingCall = existingRaw.call && typeof existingRaw.call === "object" && !Array.isArray(existingRaw.call)
+    ? existingRaw.call as Record<string, unknown>
+    : {};
+
+  const callContext: Record<string, unknown> = {
+    ...existingCall,
+    call_id: callId,
+    call_status: "ended",
+    agent_id: call.agent_id ?? existingCall.agent_id,
+    agent_name: call.agent_name ?? existingCall.agent_name,
+    from_number: call.from_number ?? existingCall.from_number,
+    to_number: call.to_number ?? existingCall.to_number,
+    start_timestamp: call.start_timestamp ?? existingCall.start_timestamp,
+    end_timestamp: call.end_timestamp ?? existingCall.end_timestamp ?? Date.now(),
+    recording_url: call.recording_url ?? existingCall.recording_url,
+  };
+
+  const transcriptCrm = existingRaw.transcript_crm && typeof existingRaw.transcript_crm === "object" && !Array.isArray(existingRaw.transcript_crm)
+    ? existingRaw.transcript_crm as Record<string, unknown>
+    : {};
+  const raw_payload = {
+    ...existingRaw,
+    call: callContext,
+    transcript_crm: {
+      ...transcriptCrm,
+      last_event: "call_ended",
+      finalized: true,
+    },
+  };
+
+  const patch: Record<string, unknown> = { raw_payload };
+  if (call.recording_url && !existing.recording_url) patch.recording_url = call.recording_url;
+  if (call.transcript && !existing.transcript) patch.transcript = call.transcript;
+
+  await db.from("bookings").update(patch).eq("call_id", callId);
+  background(invalidateDashboardCache(["calls"]));
+}
 
 async function runPostCallMessaging(callId: string, fallbackNumber: string) {
   const db = admin();
