@@ -28,8 +28,8 @@ Deno.serve(async (req) => {
   try { payload = await req.json(); } catch (_) { /* ignore */ }
 
   const event: string = payload.event ?? "";
-  const call = payload.call ?? {};
-  const callId: string = call.call_id ?? "";
+  const call = payload.call ?? payload.data?.call ?? {};
+  const callId: string = getCallId(payload);
   if (!callId) return json({ received: true }, 200);
 
   if (event === "transcript_updated") {
@@ -150,6 +150,16 @@ async function handleTranscriptForwardFailure(error: unknown, payload: any, even
     agent_name: payload.call?.agent_name ?? payload.data?.call?.agent_name ?? "",
     error: error instanceof Error ? error.message : String(error),
   });
+}
+
+function getCallId(payload: any): string {
+  return String(
+    payload.call?.call_id ??
+      payload.data?.call?.call_id ??
+      payload.data?.call_id ??
+      payload.call_id ??
+      "",
+  ).trim();
 }
 
 async function handleAnalyzed(call: any, callId: string) {
