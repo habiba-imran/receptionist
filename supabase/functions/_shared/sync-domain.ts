@@ -35,7 +35,8 @@ const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 /**
  * Sync a single booking (by call_id) into the domain tables.
- * Silently skips if the booking doesn't exist or has no usable patient name.
+ * Silently skips if the booking doesn't exist. Appointments require a patient,
+ * but emergency/escalation records may be created without one.
  * All errors are caught and logged — never throws to the caller.
  */
 export async function syncBookingToDomain(db: SupabaseClient, callId: string): Promise<void> {
@@ -63,17 +64,16 @@ async function sync(db: SupabaseClient, callId: string): Promise<void> {
 
   const tz = safeTimezone(location.timezone ?? "America/Chicago");
 
-  // 3. Upsert patient
+  // 3. Upsert patient when enough identity exists.
   const patientId = await upsertPatient(db, booking, location.id);
-  if (!patientId) return;
 
-  // 4. Upsert appointment (only if appointment data exists)
+  // 4. Upsert appointment only if appointment data and a patient exist.
   const hasAppt = str(booking.appointment_text) !== null || booking.appointment_at !== null;
-  if (hasAppt) {
+  if (hasAppt && patientId) {
     await upsertAppointment(db, booking, patientId, location, tz);
   }
 
-  // 5. Upsert escalation
+  // 5. Upsert escalation even when patient identity is not captured yet.
   await upsertEscalation(db, booking, patientId, location);
 }
 
@@ -362,7 +362,7 @@ async function upsertAppointment(
 async function upsertEscalation(
   db: SupabaseClient,
   booking: Record<string, unknown>,
-  patientId: string,
+  patientId: string | null,
   location: Record<string, unknown>,
 ): Promise<void> {
   const trigger = determineEscalationTrigger(booking);
@@ -385,6 +385,7 @@ async function upsertEscalation(
   if (existing) {
     // Update trigger + routed_to only (never touch status/acknowledged/resolution)
     const patch: Record<string, unknown> = { trigger, routed_to: routedTo };
+    if (patientId && !existing.patient_id) patch.patient_id = patientId;
     const { error } = await db.from("escalations").update(patch).eq("id", existing.id);
     if (error) console.error("sync-domain: escalation update failed", error.message);
     return;
