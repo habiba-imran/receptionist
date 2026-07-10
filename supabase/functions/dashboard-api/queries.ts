@@ -458,7 +458,7 @@ function isActiveCallStatus(status: string | null): boolean {
 function isFreshActiveCall(updatedAt: string): boolean {
   const updatedMs = Date.parse(updatedAt);
   if (!Number.isFinite(updatedMs)) return false;
-  return Date.now() - updatedMs < 75 * 1000;
+  return Date.now() - updatedMs < 7 * 60 * 1000;
 }
 
 function isVobAgent(representative: string | null, raw: Record<string, unknown>): boolean {
